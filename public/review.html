@@ -6,17 +6,18 @@
 <div class="min-h-screen bg-slate-100 flex flex-col">
   <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
     <div>
-      <h1 class="font-semibold text-indigo-700" data-i18n="review_title"></h1>
+      <h1 class="font-semibold text-indigo-700" data-i18n="app_title_manage"></h1>
       <p id="who" class="text-xs text-slate-500"></p>
     </div>
     <div class="flex items-center gap-2">
-      <a href="admin.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="back"></a>
+      <a id="backLink" href="admin.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="back"></a>
+      <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>
   </header>
 
-  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto">
+  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto pb-10">
     <div id="reviewContainer"></div>
   </main>
 </div>
@@ -25,19 +26,28 @@
 <script src="js/api.js"></script>
 <script src="js/review.js"></script>
 <script>
-  const admin = requireAuth('admin');
+  const me = requireAuth();
   const userId = Number(new URLSearchParams(location.search).get('userId'));
+  let reviewApi = null;
+
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  if (me && me.role === 'master') document.getElementById('backLink').href = 'master.html';
+
+  window.onLangChange = () => {
+    const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright');
+    if (reviewApi) reviewApi.reload();
+  };
 
   (async () => {
-    if (!userId) {
-      location.href = 'admin.html';
-      return;
-    }
+    if (!me) return;
+    if (!userId) { location.href = me.role === 'master' ? 'master.html' : 'admin.html'; return; }
     try {
       const { user } = await api('user-get', { user_id: userId });
+      const name = (user.first_name || user.last_name)
+        ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : (user.username || '');
       document.getElementById('who').textContent =
-        `ID ${user.id} · HN ${user.hospital_id || '-'} · ${user.hospital || '-'}`;
-    } catch {}
-    HomeBPReview.init(document.getElementById('reviewContainer'), userId);
+        `ID ${user.id} · HN ${user.hospital_id || '-'} · ${name || '-'} · ${user.hospital || '-'}`;
+    } catch (e) { /* header only */ }
+    reviewApi = HomeBPReview.init(document.getElementById('reviewContainer'), userId);
   })();
 </script>

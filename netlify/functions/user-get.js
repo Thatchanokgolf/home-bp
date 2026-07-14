@@ -13,7 +13,7 @@ exports.handler = async (event) => {
   if (!(await canViewUser(auth, user_id, sql))) return bad('Forbidden', 403);
 
   const rows = await sql`
-    SELECT id, email, hospital, hospital_id, shared
+    SELECT id, email, hospital, hospital_id, username, first_name, last_name, shared
     FROM users WHERE id = ${user_id}`;
   if (!rows.length) return bad('User not found', 404);
 

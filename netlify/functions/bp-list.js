@@ -13,7 +13,7 @@ exports.handler = async (event) => {
   if (!(await canViewUser(auth, user_id, sql))) return bad('Forbidden', 403);
 
   const rows = await sql`
-    SELECT id, date, time, ampm, systolic, diastolic, heart_rate
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, time, ampm, systolic, diastolic, heart_rate
     FROM bp_readings
     WHERE user_id = ${user_id}
       AND date BETWEEN ${from} AND ${to}

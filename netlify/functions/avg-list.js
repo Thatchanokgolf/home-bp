@@ -14,7 +14,7 @@ exports.handler = async (event) => {
   if (!(await canViewUser(auth, user_id, sql))) return bad('Forbidden', 403);
 
   const rows = await sql`
-    SELECT id, date, ampm, systolic, diastolic, heart_rate
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, ampm, systolic, diastolic, heart_rate
     FROM avg_bp
     WHERE user_id = ${user_id}
       AND date BETWEEN ${from} AND ${to}
@@ -26,15 +26,20 @@ exports.handler = async (event) => {
 
   const amRows = rows.filter((r) => r.ampm === 'AM');
   const pmRows = rows.filter((r) => r.ampm === 'PM');
-  const days = new Set(rows.map((r) => String(r.date))).size;
+
+  // Expected max = 2 readings (AM + PM) per calendar day across the whole range.
+  const f = Date.parse(from), tt = Date.parse(to);
+  const rangeDays = !isNaN(f) && !isNaN(tt) && tt >= f
+    ? Math.floor((tt - f) / 86400000) + 1
+    : 0;
 
   const summary = {
     am: { systolic: num(avg(amRows, 'systolic')), diastolic: num(avg(amRows, 'diastolic')), heart_rate: num(avg(amRows, 'heart_rate')) },
     pm: { systolic: num(avg(pmRows, 'systolic')), diastolic: num(avg(pmRows, 'diastolic')), heart_rate: num(avg(pmRows, 'heart_rate')) },
     all: { systolic: num(avg(rows, 'systolic')), diastolic: num(avg(rows, 'diastolic')), heart_rate: num(avg(rows, 'heart_rate')) },
     count: rows.length,
-    max_expected: days * 2,
-    days,
+    max_expected: rangeDays * 2,
+    days: rangeDays,
   };
 
   return ok({ rows, summary });

@@ -1,0 +1,104 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Master</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <div>
+      <h1 class="font-semibold text-indigo-700" data-i18n="app_title_manage"></h1>
+      <p class="text-xs text-slate-500" data-i18n="master_title"></p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
+      <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+      <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto pb-10">
+    <div class="bg-white rounded-2xl shadow p-4 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-2 py-2 text-left font-medium">ID</th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="col_email"></th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="col_username"></th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="fname_th"></th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="lname_th"></th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="col_hospital"></th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="col_hn"></th>
+            <th class="px-2 py-2 text-left font-medium" data-i18n="col_role"></th>
+            <th class="px-2 py-2 text-center font-medium" data-i18n="col_shared"></th>
+            <th class="px-2 py-2"></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const master = requireAuth('master');
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  const inp = 'border rounded px-2 py-1 w-full min-w-[7rem]';
+
+  function rowHtml(u) {
+    const hospOpt = (v) => `
+      <option value="" ${!u.hospital ? 'selected' : ''}>-</option>
+      <option value="Siriraj Hospital" ${u.hospital === 'Siriraj Hospital' ? 'selected' : ''}>Siriraj</option>
+      <option value="Srinagarind Hospital" ${u.hospital === 'Srinagarind Hospital' ? 'selected' : ''}>Srinagarind</option>`;
+    const roleOpt = ['user', 'admin', 'master'].map((r) =>
+      `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('');
+    return `<tr class="border-t" data-id="${u.id}">
+      <td class="px-2 py-2">${u.id}</td>
+      <td class="px-2 py-2"><input class="${inp} f-email" value="${u.email || ''}" /></td>
+      <td class="px-2 py-2"><input class="${inp} f-username" value="${u.username || ''}" /></td>
+      <td class="px-2 py-2"><input class="${inp} f-fn" value="${u.first_name || ''}" /></td>
+      <td class="px-2 py-2"><input class="${inp} f-ln" value="${u.last_name || ''}" /></td>
+      <td class="px-2 py-2"><select class="${inp} f-hosp">${hospOpt()}</select></td>
+      <td class="px-2 py-2"><input class="${inp} f-hn" value="${u.hospital_id || ''}" /></td>
+      <td class="px-2 py-2"><select class="${inp} f-role">${roleOpt}</select></td>
+      <td class="px-2 py-2 text-center"><input type="checkbox" class="f-shared" ${u.shared ? 'checked' : ''} /></td>
+      <td class="px-2 py-2"><button class="f-save bg-indigo-600 text-white rounded px-3 py-1 hover:bg-indigo-700" data-i18n="save"></button></td>
+    </tr>`;
+  }
+
+  async function saveRow(tr) {
+    const g = (c) => tr.querySelector(c);
+    const btn = g('.f-save');
+    btn.disabled = true;
+    try {
+      const { user } = await api('master-update', {
+        id: Number(tr.dataset.id),
+        email: g('.f-email').value.trim(),
+        username: g('.f-username').value.trim(),
+        first_name: g('.f-fn').value.trim(),
+        last_name: g('.f-ln').value.trim(),
+        hospital: g('.f-hosp').value,
+        hospital_id: g('.f-hn').value.trim(),
+        role: g('.f-role').value,
+        shared: g('.f-shared').checked ? 'yes' : 'no',
+      });
+      btn.textContent = t('saved');
+      setTimeout(() => { btn.textContent = t('save'); }, 1500);
+    } catch (err) {
+      alert(err.message);
+    } finally { btn.disabled = false; }
+  }
+
+  (async () => {
+    if (!master) return;
+    try {
+      const { rows } = await api('master-list', {});
+      document.getElementById('rows').innerHTML = rows.map(rowHtml).join('');
+      applyI18n();
+      document.querySelectorAll('.f-save').forEach((b) =>
+        b.addEventListener('click', () => saveRow(b.closest('tr'))));
+    } catch (err) { alert(err.message); }
+  })();
+</script>

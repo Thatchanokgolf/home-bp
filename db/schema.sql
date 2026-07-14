@@ -5,13 +5,20 @@
 -- 1. User Database
 CREATE TABLE IF NOT EXISTS users (
   id           SERIAL PRIMARY KEY,      -- auto-generated running number = the "ID"
-  email        TEXT,                    -- optional
+  email        TEXT,                    -- mandatory at registration; unique
   hospital     TEXT,                    -- optional (Siriraj / Srinagarind)
-  hospital_id  TEXT,                    -- optional (HN)
-  role         TEXT    NOT NULL DEFAULT 'user',   -- 'user' | 'admin'
+  hospital_id  TEXT,                    -- optional (HN); unique; >=4 chars
+  username     TEXT,                    -- optional; unique; has a letter, no '@'
+  first_name   TEXT,                    -- optional (Thai)
+  last_name    TEXT,                    -- optional (Thai)
+  role         TEXT    NOT NULL DEFAULT 'user',   -- 'user' | 'admin' | 'master'
   password     TEXT    NOT NULL,        -- bcrypt hash
-  shared       BOOLEAN NOT NULL DEFAULT false      -- shared to doctor yes/no
+  shared       BOOLEAN NOT NULL DEFAULT true       -- shared to doctor yes/no
 );
+-- Uniqueness (Postgres allows multiple NULLs, so optional fields stay optional)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email       ON users (email);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_hospital_id ON users (hospital_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username    ON users (username);
 
 -- 2. BP Database (every individual reading)
 CREATE TABLE IF NOT EXISTS bp_readings (

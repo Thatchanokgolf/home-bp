@@ -17,6 +17,13 @@ exports.handler = async (event) => {
   if (systolic == null || diastolic == null || heart_rate == null)
     return bad('Systolic, diastolic and heart rate are required');
 
+  // All three must be whole numbers within clinical ranges.
+  const s = Number(systolic), d = Number(diastolic), h = Number(heart_rate);
+  if (![s, d, h].every(Number.isInteger)) return bad('Values must be whole numbers');
+  if (s < 20 || s > 240) return bad('Systolic BP must be between 20 and 240');
+  if (d < 10 || d > 160) return bad('Diastolic BP must be between 10 and 160');
+  if (h < 30 || h > 180) return bad('Heart rate must be between 30 and 180');
+
   const dt = datetime ? new Date(datetime) : new Date();
   if (isNaN(dt.getTime())) return bad('Invalid date/time');
 
@@ -37,14 +44,14 @@ exports.handler = async (event) => {
 
   // Recompute the average for this user / date / AM-PM bucket.
   const agg = await sql`
-    SELECT AVG(systolic) s, AVG(diastolic) d, AVG(heart_rate) h
+    SELECT AVG(systolic) avg_s, AVG(diastolic) avg_d, AVG(heart_rate) avg_h
     FROM bp_readings
     WHERE user_id = ${user_id} AND date = ${date} AND ampm = ${ampm}`;
-  const { s, d, h } = agg[0];
+  const { avg_s, avg_d, avg_h } = agg[0];
 
   await sql`
     INSERT INTO avg_bp (user_id, date, ampm, systolic, diastolic, heart_rate)
-    VALUES (${user_id}, ${date}, ${ampm}, ${s}, ${d}, ${h})
+    VALUES (${user_id}, ${date}, ${ampm}, ${avg_s}, ${avg_d}, ${avg_h})
     ON CONFLICT (user_id, date, ampm)
     DO UPDATE SET systolic = EXCLUDED.systolic,
                   diastolic = EXCLUDED.diastolic,

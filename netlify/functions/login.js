@@ -3,17 +3,18 @@ const { sql, ok, bad, parse } = require('./_db');
 const { signToken } = require('./_auth');
 
 // POST /api/login
-// body: { identifier, password }  identifier = numeric ID or e-mail
+// body: { identifier, password }  identifier = numeric ID, e-mail, or username
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
   const { identifier, password } = parse(event);
-  if (!identifier || !password) return bad('Please enter ID/e-mail and password');
+  if (!identifier || !password) return bad('Please enter ID/e-mail/username and password');
 
+  const idf = String(identifier).trim();
   let rows;
-  if (/^\d+$/.test(String(identifier).trim())) {
-    rows = await sql`SELECT * FROM users WHERE id = ${Number(identifier)}`;
+  if (/^\d+$/.test(idf)) {
+    rows = await sql`SELECT * FROM users WHERE id = ${Number(idf)}`;
   } else {
-    rows = await sql`SELECT * FROM users WHERE email = ${String(identifier).trim()}`;
+    rows = await sql`SELECT * FROM users WHERE email = ${idf} OR username = ${idf}`;
   }
   if (!rows.length) return bad('Invalid credentials', 401);
 
@@ -26,6 +27,9 @@ exports.handler = async (event) => {
     email: user.email,
     hospital: user.hospital,
     hospital_id: user.hospital_id,
+    username: user.username,
+    first_name: user.first_name,
+    last_name: user.last_name,
     role: user.role,
     shared: user.shared,
   };

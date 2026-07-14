@@ -4,20 +4,30 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <div class="min-h-screen bg-slate-100 flex flex-col">
   <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
-    <h1 class="font-semibold text-indigo-700" data-i18n="admin_title"></h1>
+    <div>
+      <h1 class="font-semibold text-indigo-700" data-i18n="app_title_manage"></h1>
+      <p class="text-xs text-slate-500" data-i18n="admin_title"></p>
+    </div>
     <div class="flex items-center gap-2">
+      <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>
   </header>
 
-  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto">
+  <main class="flex-1 p-4 md:p-6 max-w-5xl w-full mx-auto pb-10">
     <div class="bg-white rounded-2xl shadow p-6">
-      <form id="searchForm" class="flex gap-2 mb-5">
-        <input id="q" data-i18n-ph="search_ph" class="flex-1 border rounded-lg px-3 py-2" />
+      <form id="searchForm" class="flex flex-wrap gap-2 mb-4">
+        <input id="q" data-i18n-ph="search_ph" class="flex-1 min-w-[12rem] border rounded-lg px-3 py-2" />
         <button class="bg-indigo-600 text-white rounded-lg px-5 py-2 hover:bg-indigo-700" data-i18n="search"></button>
+        <button type="button" id="hospitalBtn" class="border border-indigo-600 text-indigo-700 rounded-lg px-4 py-2 hover:bg-indigo-50" data-i18n="show_hospital_users"></button>
       </form>
       <div id="results"></div>
+      <div id="pager" class="hidden items-center justify-center gap-3 mt-4">
+        <button id="prevBtn" class="border rounded-lg px-3 py-1 hover:bg-slate-50 disabled:opacity-40" data-i18n="prev"></button>
+        <span class="text-sm text-slate-500"><span data-i18n="page"></span> <b id="pageNum">1</b></span>
+        <button id="nextBtn" class="border rounded-lg px-3 py-1 hover:bg-slate-50 disabled:opacity-40" data-i18n="next"></button>
+      </div>
     </div>
   </main>
 </div>
@@ -26,38 +36,67 @@
 <script src="js/api.js"></script>
 <script>
   const admin = requireAuth('admin');
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  let mode = 'search'; // 'search' | 'hospital'
+  let page = 0;
+
+  function fullName(r) {
+    const n = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+    return n || '-';
+  }
 
   function renderRows(rows) {
     const box = document.getElementById('results');
     if (!rows.length) {
-      box.innerHTML = `<p class="text-slate-400 text-center py-6">${t('no_results')}</p>`;
+      box.innerHTML = `<p class="text-slate-400 text-center py-6">${t(mode === 'hospital' ? 'no_data' : 'no_results')}</p>`;
       return;
     }
-    const head = ['col_id', 'col_email', 'col_hospital', 'col_hn', '']
-      .map((k) => `<th class="px-3 py-2 text-left font-medium">${k ? t(k) : ''}</th>`)
-      .join('');
-    const body = rows
-      .map(
-        (r) => `<tr class="border-t">
-          <td class="px-3 py-2">${r.id}</td>
-          <td class="px-3 py-2">${r.email || '-'}</td>
-          <td class="px-3 py-2">${r.hospital || '-'}</td>
-          <td class="px-3 py-2">${r.hospital_id || '-'}</td>
-          <td class="px-3 py-2"><a href="review.html?userId=${r.id}" class="text-indigo-600 hover:underline">${t('review_record')}</a></td>
-        </tr>`
-      )
-      .join('');
+    const cols = ['col_id', 'col_name', 'col_username', 'col_email', 'col_hospital', 'col_hn', ''];
+    const head = cols.map((k) => `<th class="px-3 py-2 text-left font-medium">${k ? t(k) : ''}</th>`).join('');
+    const body = rows.map((r) => `<tr class="border-t">
+      <td class="px-3 py-2">${r.id}</td>
+      <td class="px-3 py-2">${fullName(r)}</td>
+      <td class="px-3 py-2">${r.username || '-'}</td>
+      <td class="px-3 py-2">${r.email || '-'}</td>
+      <td class="px-3 py-2">${r.hospital || '-'}</td>
+      <td class="px-3 py-2">${r.hospital_id || '-'}</td>
+      <td class="px-3 py-2"><a href="review.html?userId=${r.id}" class="text-indigo-600 hover:underline">${t('review_record')}</a></td>
+    </tr>`).join('');
     box.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">
       <thead class="bg-slate-50 text-slate-600">${head}</thead><tbody>${body}</tbody></table></div>`;
   }
 
   document.getElementById('searchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    mode = 'search';
+    document.getElementById('pager').classList.add('hidden');
     try {
       const { rows } = await api('admin-search', { query: document.getElementById('q').value });
       renderRows(rows);
-    } catch (err) {
-      alert(err.message);
-    }
+    } catch (err) { alert(err.message); }
   });
+
+  async function loadHospital() {
+    try {
+      const { rows, hasNext, hospital } = await api('admin-hospital-users', { page });
+      if (hospital === null) {
+        document.getElementById('results').innerHTML = `<p class="text-amber-600 text-center py-6">${t('no_hospital')}</p>`;
+        document.getElementById('pager').classList.add('hidden');
+        return;
+      }
+      renderRows(rows);
+      const pager = document.getElementById('pager');
+      pager.classList.remove('hidden');
+      pager.classList.add('flex');
+      document.getElementById('pageNum').textContent = page + 1;
+      document.getElementById('prevBtn').disabled = page === 0;
+      document.getElementById('nextBtn').disabled = !hasNext;
+    } catch (err) { alert(err.message); }
+  }
+
+  document.getElementById('hospitalBtn').addEventListener('click', () => { mode = 'hospital'; page = 0; loadHospital(); });
+  document.getElementById('prevBtn').addEventListener('click', () => { if (page > 0) { page--; loadHospital(); } });
+  document.getElementById('nextBtn').addEventListener('click', () => { page++; loadHospital(); });
 </script>

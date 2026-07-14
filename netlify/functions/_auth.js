@@ -35,6 +35,7 @@ function verify(event) {
 //  - admins may read a user ONLY if that user set shared = true
 async function canViewUser(payload, targetId, sql) {
   if (Number(payload.id) === Number(targetId)) return true;
+  if (payload.role === 'master') return true;
   if (payload.role === 'admin') {
     const rows = await sql`SELECT shared FROM users WHERE id = ${targetId}`;
     return rows.length > 0 && rows[0].shared === true;

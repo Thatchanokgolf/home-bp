@@ -72,3 +72,41 @@ function daysAgo(n) {
   d.setDate(d.getDate() - n);
   return d;
 }
+
+// ----- display formatting -----
+// 'YYYY-MM-DD' (or Date) -> 'DD/MM/YYYY'
+function fmtDate(d) {
+  if (!d) return '';
+  const s = typeof d === 'string' ? d.slice(0, 10) : ymd(d);
+  const [y, m, day] = s.split('-');
+  return `${day}/${m}/${y}`;
+}
+function fmtHM(timeStr) {
+  return String(timeStr || '').slice(0, 5); // HH:MM
+}
+// date + hour:minute -> 'DD/MM/YYYY HH:MM'
+function fmtDateHM(dateStr, timeStr) {
+  return `${fmtDate(dateStr)} ${fmtHM(timeStr)}`.trim();
+}
+
+// Greeting for the top panel. Thai precedes the first name with 'คุณ'.
+function greetingName(u) {
+  if (!u) return '';
+  const fn = (u.first_name || '').trim();
+  const ln = (u.last_name || '').trim();
+  if (fn || ln) {
+    const name = `${fn} ${ln}`.trim();
+    return getLang() === 'th' ? `คุณ${name}` : name;
+  }
+  return u.username || u.email || 'ID ' + u.id;
+}
+
+// Fixed copyright bar, bottom-left of every page.
+function renderFooter() {
+  if (document.getElementById('hbpFooter')) return;
+  const f = document.createElement('footer');
+  f.id = 'hbpFooter';
+  f.className = 'fixed bottom-0 left-0 text-xs text-slate-400 px-3 py-1 z-40';
+  f.textContent = t('copyright');
+  document.body.appendChild(f);
+}

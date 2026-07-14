@@ -1,0 +1,111 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Settings</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <h1 class="font-semibold text-indigo-700" data-i18n="app_title_manage"></h1>
+    <div class="flex items-center gap-2">
+      <a id="backLink" href="user.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="back"></a>
+      <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+      <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6 max-w-md w-full mx-auto pb-10 space-y-6">
+    <h2 class="text-xl font-semibold text-slate-800" data-i18n="settings_title"></h2>
+
+    <!-- Change password -->
+    <div class="bg-white rounded-2xl shadow p-6">
+      <h3 class="font-semibold mb-4 text-slate-700" data-i18n="change_pw_title"></h3>
+      <form id="pwForm" class="space-y-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="old_password"></label>
+          <input id="old1" type="password" class="w-full border rounded-lg px-3 py-2" required />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="old_password2"></label>
+          <input id="old2" type="password" class="w-full border rounded-lg px-3 py-2" required />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="new_password"></label>
+          <input id="new1" type="password" class="w-full border rounded-lg px-3 py-2" required />
+          <p class="text-xs text-slate-400 mt-1" data-i18n="password_help"></p>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="confirm_new_password"></label>
+          <input id="new2" type="password" class="w-full border rounded-lg px-3 py-2" required />
+        </div>
+        <button id="pwBtn" class="w-full bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="change_password_btn"></button>
+        <p id="pwMsg" class="text-sm hidden"></p>
+      </form>
+    </div>
+
+    <!-- Share setting -->
+    <div class="bg-white rounded-2xl shadow p-6">
+      <h3 class="font-semibold mb-4 text-slate-700" data-i18n="share_setting_title"></h3>
+      <div class="flex items-center gap-4 mb-4">
+        <label><input type="radio" name="shared" value="yes" /> <span data-i18n="yes"></span></label>
+        <label><input type="radio" name="shared" value="no" /> <span data-i18n="no"></span></label>
+      </div>
+      <button id="shareBtn" class="bg-indigo-600 text-white rounded-lg px-5 py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="save"></button>
+      <p id="shareMsg" class="text-sm text-green-600 hidden mt-2" data-i18n="shared_saved"></p>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const user = requireAuth();
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  if (user) {
+    // Back link points to the user's home page.
+    document.getElementById('backLink').href =
+      user.role === 'admin' ? 'admin.html' : user.role === 'master' ? 'master.html' : 'user.html';
+
+    // Reflect current shared state.
+    document.querySelector(`input[name="shared"][value="${user.shared ? 'yes' : 'no'}"]`).checked = true;
+
+    // Change password (old password entered twice, plus new password twice).
+    document.getElementById('pwForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const old1 = document.getElementById('old1').value;
+      const old2 = document.getElementById('old2').value;
+      const new1 = document.getElementById('new1').value;
+      const new2 = document.getElementById('new2').value;
+      const msg = document.getElementById('pwMsg');
+      const btn = document.getElementById('pwBtn');
+      if (old1 !== old2) { msg.className = 'text-sm text-red-600'; msg.textContent = t('v_pw_match'); msg.classList.remove('hidden'); return; }
+      if (new1.length < 8) { msg.className = 'text-sm text-red-600'; msg.textContent = t('v_pw_len'); msg.classList.remove('hidden'); return; }
+      if (!/[A-Za-z]/.test(new1) || !/[0-9]/.test(new1)) { msg.className = 'text-sm text-red-600'; msg.textContent = t('v_pw_mix'); msg.classList.remove('hidden'); return; }
+      if (new1 !== new2) { msg.className = 'text-sm text-red-600'; msg.textContent = t('v_pw_match'); msg.classList.remove('hidden'); return; }
+      btn.disabled = true;
+      try {
+        await api('change-password', { old_password: old1, new_password: new1, new_password2: new2 });
+        msg.className = 'text-sm text-green-600'; msg.textContent = t('pw_changed'); msg.classList.remove('hidden');
+        document.getElementById('pwForm').reset();
+      } catch (err) {
+        msg.className = 'text-sm text-red-600'; msg.textContent = err.message; msg.classList.remove('hidden');
+      } finally { btn.disabled = false; }
+    });
+
+    // Change shared setting.
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      const val = document.querySelector('input[name="shared"]:checked').value;
+      const btn = document.getElementById('shareBtn');
+      btn.disabled = true;
+      try {
+        const { shared } = await api('update-shared', { shared: val });
+        user.shared = shared;
+        setSession(user, getToken());
+        const m = document.getElementById('shareMsg');
+        m.classList.remove('hidden');
+        setTimeout(() => m.classList.add('hidden'), 2500);
+      } catch (err) { alert(err.message); }
+      finally { btn.disabled = false; }
+    });
+  }
+</script>

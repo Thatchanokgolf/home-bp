@@ -6,57 +6,74 @@
 <div class="min-h-screen bg-slate-100 flex flex-col">
   <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
     <div>
-      <h1 class="font-semibold text-indigo-700" data-i18n="app_title"></h1>
-      <p class="text-xs text-slate-500"><span data-i18n="welcome"></span> · ID <b id="uid"></b></p>
+      <h1 class="font-semibold text-indigo-700" data-i18n="app_title_manage"></h1>
+      <p class="text-xs text-slate-500"><span data-i18n="welcome"></span> · <b id="greet"></b></p>
     </div>
     <div class="flex items-center gap-2">
+      <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>
   </header>
 
   <div class="flex gap-2 px-5 pt-4 border-b bg-white">
-    <button id="tabSubmit" class="topmenu -mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_submit"></button>
-    <button id="tabReview" class="topmenu -mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_review"></button>
+    <button id="tabSubmit" class="-mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_submit"></button>
+    <button id="tabReview" class="-mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_review"></button>
   </div>
 
-  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto">
+  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto pb-10">
     <!-- Submit pane -->
     <section id="paneSubmit">
-      <div class="bg-white rounded-2xl shadow p-6 max-w-md">
+      <div class="bg-white rounded-2xl shadow p-6 max-w-md relative">
+        <div id="liveDt" class="text-xs text-slate-400 mb-2"></div>
         <h2 class="text-lg font-semibold mb-4 text-slate-800" data-i18n="submit_bp_title"></h2>
         <form id="bpForm" class="space-y-3">
           <div>
-            <label class="block text-sm text-slate-600 mb-1" data-i18n="your_id"></label>
-            <input id="fId" class="w-full border rounded-lg px-3 py-2 bg-slate-100" readonly />
-          </div>
-          <div>
-            <label class="block text-sm text-slate-600 mb-1" data-i18n="datetime"></label>
-            <input id="fDatetime" class="w-full border rounded-lg px-3 py-2 bg-slate-100" readonly />
-          </div>
-          <div>
             <label class="block text-sm text-slate-600 mb-1" data-i18n="systolic"></label>
-            <input id="fSys" type="number" min="0" class="w-full border rounded-lg px-3 py-2" required />
+            <input id="fSys" type="number" step="1" min="20" max="240" class="w-full border rounded-lg px-3 py-2" required />
           </div>
           <div>
             <label class="block text-sm text-slate-600 mb-1" data-i18n="diastolic"></label>
-            <input id="fDia" type="number" min="0" class="w-full border rounded-lg px-3 py-2" required />
+            <input id="fDia" type="number" step="1" min="10" max="160" class="w-full border rounded-lg px-3 py-2" required />
           </div>
           <div>
             <label class="block text-sm text-slate-600 mb-1" data-i18n="heart_rate"></label>
-            <input id="fHr" type="number" min="0" class="w-full border rounded-lg px-3 py-2" required />
+            <input id="fHr" type="number" step="1" min="30" max="180" class="w-full border rounded-lg px-3 py-2" required />
           </div>
           <button class="w-full bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="save_reading"></button>
           <p id="saveMsg" class="text-sm text-green-600 hidden" data-i18n="saved_ok"></p>
         </form>
       </div>
+
+      <!-- Last 5 readings -->
+      <div class="bg-white rounded-2xl shadow p-6 max-w-md mt-4">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700" data-i18n="last5_title"></h3>
+        <div id="last5"></div>
+      </div>
     </section>
 
     <!-- Review pane -->
     <section id="paneReview" class="hidden">
-      <div id="reviewContainer" class="bg-white/0"></div>
+      <div id="reviewContainer"></div>
     </section>
   </main>
+</div>
+
+<!-- Confirmation modal -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+    <h3 class="text-lg font-semibold mb-4 text-slate-800" data-i18n="confirm_title"></h3>
+    <ul class="text-sm text-slate-700 space-y-1 mb-5">
+      <li><span data-i18n="datetime"></span>: <b id="cDt"></b></li>
+      <li><span data-i18n="systolic"></span>: <b id="cSys"></b> <span class="text-slate-400" data-i18n="unit_mmhg"></span></li>
+      <li><span data-i18n="diastolic"></span>: <b id="cDia"></b> <span class="text-slate-400" data-i18n="unit_mmhg"></span></li>
+      <li><span data-i18n="heart_rate"></span>: <b id="cHr"></b> <span class="text-slate-400" data-i18n="unit_bpm"></span></li>
+    </ul>
+    <div class="flex gap-2">
+      <button id="cConfirm" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="confirm"></button>
+      <button id="cCancel" class="flex-1 border rounded-lg py-2 hover:bg-slate-50" data-i18n="cancel"></button>
+    </div>
+  </div>
 </div>
 
 <script src="js/i18n.js"></script>
@@ -65,22 +82,47 @@
 <script>
   const user = requireAuth('user');
   let reviewApi = null;
-  let liveDt = null;
+  let pending = null; // holds the reading awaiting confirmation
 
   if (user) {
-    document.getElementById('uid').textContent = user.id;
-    document.getElementById('fId').value = user.id;
+    document.getElementById('greet').textContent = greetingName(user);
 
-    // Live, non-editable current date/time.
+    // Live date/time (date - hour - minute, no seconds), small grey.
     function tick() {
-      liveDt = new Date();
+      const now = new Date();
       const p = (n) => String(n).padStart(2, '0');
-      document.getElementById('fDatetime').value =
-        `${ymd(liveDt)} ${p(liveDt.getHours())}:${p(liveDt.getMinutes())}:${p(liveDt.getSeconds())}`;
+      document.getElementById('liveDt').textContent =
+        `${fmtDate(now)} ${p(now.getHours())}:${p(now.getMinutes())}`;
     }
     tick();
-    setInterval(tick, 1000);
+    setInterval(tick, 1000 * 15);
 
+    window.onLangChange = () => {
+      document.getElementById('greet').textContent = greetingName(user);
+      const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright');
+      tick();
+    };
+    document.addEventListener('DOMContentLoaded', renderFooter);
+
+    // ---- last 5 readings ----
+    async function loadLast5() {
+      try {
+        const { rows } = await api('bp-recent', {});
+        const box = document.getElementById('last5');
+        if (!rows.length) { box.innerHTML = `<p class="text-slate-400 text-sm">${t('no_data')}</p>`; return; }
+        const head = ['col_date', 'col_sys', 'col_dia', 'col_hr']
+          .map((k) => `<th class="px-2 py-1 text-left font-medium">${t(k)}</th>`).join('');
+        const body = rows.map((r) => `<tr class="border-t">
+          <td class="px-2 py-1 whitespace-nowrap">${fmtDateHM(r.date, r.time)}</td>
+          <td class="px-2 py-1">${r.systolic}</td>
+          <td class="px-2 py-1">${r.diastolic}</td>
+          <td class="px-2 py-1">${r.heart_rate}</td></tr>`).join('');
+        box.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">
+          <thead class="text-slate-500">${head}</thead><tbody>${body}</tbody></table></div>`;
+      } catch (e) { /* ignore */ }
+    }
+
+    // ---- tabs ----
     function show(which) {
       const s = which === 'submit';
       document.getElementById('paneSubmit').classList.toggle('hidden', !s);
@@ -93,37 +135,71 @@
         b.classList.toggle('text-slate-500', !on);
       }
       if (!s) {
-        if (!reviewApi)
-          reviewApi = HomeBPReview.init(document.getElementById('reviewContainer'), user.id);
+        if (!reviewApi) reviewApi = HomeBPReview.init(document.getElementById('reviewContainer'), user.id);
         else reviewApi.reload();
       }
     }
     document.getElementById('tabSubmit').addEventListener('click', () => show('submit'));
     document.getElementById('tabReview').addEventListener('click', () => show('review'));
     show('submit');
+    loadLast5();
 
-    document.getElementById('bpForm').addEventListener('submit', async (e) => {
+    // ---- submit + confirmation ----
+    const modal = document.getElementById('confirmModal');
+    function validateNums(s, d, h) {
+      if (![s, d, h].every(Number.isInteger)) return t('v_int');
+      if (s < 20 || s > 240) return t('v_sys_range');
+      if (d < 10 || d > 160) return t('v_dia_range');
+      if (h < 30 || h > 180) return t('v_hr_range');
+      return null;
+    }
+
+    document.getElementById('bpForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const p = (n) => String(n).padStart(2, '0');
+      const s = Number(document.getElementById('fSys').value);
+      const d = Number(document.getElementById('fDia').value);
+      const h = Number(document.getElementById('fHr').value);
+      const err = validateNums(s, d, h);
+      if (err) { alert(err); return; }
+
       const now = new Date();
-      const iso = `${ymd(now)}T${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+      const p = (n) => String(n).padStart(2, '0');
+      pending = {
+        datetime: `${ymd(now)}T${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`,
+        display: `${fmtDate(now)} ${p(now.getHours())}:${p(now.getMinutes())}`,
+        systolic: s, diastolic: d, heart_rate: h,
+      };
+      document.getElementById('cDt').textContent = pending.display;
+      document.getElementById('cSys').textContent = s;
+      document.getElementById('cDia').textContent = d;
+      document.getElementById('cHr').textContent = h;
+      modal.classList.remove('hidden');
+    });
+
+    document.getElementById('cCancel').addEventListener('click', () => { modal.classList.add('hidden'); pending = null; });
+    document.getElementById('cConfirm').addEventListener('click', async () => {
+      if (!pending) return;
+      const btn = document.getElementById('cConfirm');
+      btn.disabled = true;
       try {
         await api('submit-bp', {
-          user_id: user.id,
-          datetime: iso,
-          systolic: Number(document.getElementById('fSys').value),
-          diastolic: Number(document.getElementById('fDia').value),
-          heart_rate: Number(document.getElementById('fHr').value),
+          datetime: pending.datetime,
+          systolic: pending.systolic, diastolic: pending.diastolic, heart_rate: pending.heart_rate,
         });
+        modal.classList.add('hidden');
+        pending = null;
         const msg = document.getElementById('saveMsg');
         msg.classList.remove('hidden');
         setTimeout(() => msg.classList.add('hidden'), 2500);
         document.getElementById('fSys').value = '';
         document.getElementById('fDia').value = '';
         document.getElementById('fHr').value = '';
-        reviewApi = null; // force refresh next time review is opened
+        reviewApi = null;
+        loadLast5();
       } catch (err) {
         alert(err.message);
+      } finally {
+        btn.disabled = false;
       }
     });
   }
