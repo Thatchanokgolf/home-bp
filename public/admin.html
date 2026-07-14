@@ -1,0 +1,63 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <h1 class="font-semibold text-indigo-700" data-i18n="admin_title"></h1>
+    <div class="flex items-center gap-2">
+      <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+      <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto">
+    <div class="bg-white rounded-2xl shadow p-6">
+      <form id="searchForm" class="flex gap-2 mb-5">
+        <input id="q" data-i18n-ph="search_ph" class="flex-1 border rounded-lg px-3 py-2" />
+        <button class="bg-indigo-600 text-white rounded-lg px-5 py-2 hover:bg-indigo-700" data-i18n="search"></button>
+      </form>
+      <div id="results"></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const admin = requireAuth('admin');
+
+  function renderRows(rows) {
+    const box = document.getElementById('results');
+    if (!rows.length) {
+      box.innerHTML = `<p class="text-slate-400 text-center py-6">${t('no_results')}</p>`;
+      return;
+    }
+    const head = ['col_id', 'col_email', 'col_hospital', 'col_hn', '']
+      .map((k) => `<th class="px-3 py-2 text-left font-medium">${k ? t(k) : ''}</th>`)
+      .join('');
+    const body = rows
+      .map(
+        (r) => `<tr class="border-t">
+          <td class="px-3 py-2">${r.id}</td>
+          <td class="px-3 py-2">${r.email || '-'}</td>
+          <td class="px-3 py-2">${r.hospital || '-'}</td>
+          <td class="px-3 py-2">${r.hospital_id || '-'}</td>
+          <td class="px-3 py-2"><a href="review.html?userId=${r.id}" class="text-indigo-600 hover:underline">${t('review_record')}</a></td>
+        </tr>`
+      )
+      .join('');
+    box.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600">${head}</thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  document.getElementById('searchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const { rows } = await api('admin-search', { query: document.getElementById('q').value });
+      renderRows(rows);
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+</script>

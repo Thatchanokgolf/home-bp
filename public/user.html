@@ -1,0 +1,130 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — My readings</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <div>
+      <h1 class="font-semibold text-indigo-700" data-i18n="app_title"></h1>
+      <p class="text-xs text-slate-500"><span data-i18n="welcome"></span> · ID <b id="uid"></b></p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+      <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
+    </div>
+  </header>
+
+  <div class="flex gap-2 px-5 pt-4 border-b bg-white">
+    <button id="tabSubmit" class="topmenu -mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_submit"></button>
+    <button id="tabReview" class="topmenu -mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_review"></button>
+  </div>
+
+  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto">
+    <!-- Submit pane -->
+    <section id="paneSubmit">
+      <div class="bg-white rounded-2xl shadow p-6 max-w-md">
+        <h2 class="text-lg font-semibold mb-4 text-slate-800" data-i18n="submit_bp_title"></h2>
+        <form id="bpForm" class="space-y-3">
+          <div>
+            <label class="block text-sm text-slate-600 mb-1" data-i18n="your_id"></label>
+            <input id="fId" class="w-full border rounded-lg px-3 py-2 bg-slate-100" readonly />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-600 mb-1" data-i18n="datetime"></label>
+            <input id="fDatetime" class="w-full border rounded-lg px-3 py-2 bg-slate-100" readonly />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-600 mb-1" data-i18n="systolic"></label>
+            <input id="fSys" type="number" min="0" class="w-full border rounded-lg px-3 py-2" required />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-600 mb-1" data-i18n="diastolic"></label>
+            <input id="fDia" type="number" min="0" class="w-full border rounded-lg px-3 py-2" required />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-600 mb-1" data-i18n="heart_rate"></label>
+            <input id="fHr" type="number" min="0" class="w-full border rounded-lg px-3 py-2" required />
+          </div>
+          <button class="w-full bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="save_reading"></button>
+          <p id="saveMsg" class="text-sm text-green-600 hidden" data-i18n="saved_ok"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Review pane -->
+    <section id="paneReview" class="hidden">
+      <div id="reviewContainer" class="bg-white/0"></div>
+    </section>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/review.js"></script>
+<script>
+  const user = requireAuth('user');
+  let reviewApi = null;
+  let liveDt = null;
+
+  if (user) {
+    document.getElementById('uid').textContent = user.id;
+    document.getElementById('fId').value = user.id;
+
+    // Live, non-editable current date/time.
+    function tick() {
+      liveDt = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      document.getElementById('fDatetime').value =
+        `${ymd(liveDt)} ${p(liveDt.getHours())}:${p(liveDt.getMinutes())}:${p(liveDt.getSeconds())}`;
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    function show(which) {
+      const s = which === 'submit';
+      document.getElementById('paneSubmit').classList.toggle('hidden', !s);
+      document.getElementById('paneReview').classList.toggle('hidden', s);
+      for (const [id, on] of [['tabSubmit', s], ['tabReview', !s]]) {
+        const b = document.getElementById(id);
+        b.classList.toggle('border-indigo-600', on);
+        b.classList.toggle('text-indigo-600', on);
+        b.classList.toggle('border-transparent', !on);
+        b.classList.toggle('text-slate-500', !on);
+      }
+      if (!s) {
+        if (!reviewApi)
+          reviewApi = HomeBPReview.init(document.getElementById('reviewContainer'), user.id);
+        else reviewApi.reload();
+      }
+    }
+    document.getElementById('tabSubmit').addEventListener('click', () => show('submit'));
+    document.getElementById('tabReview').addEventListener('click', () => show('review'));
+    show('submit');
+
+    document.getElementById('bpForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const p = (n) => String(n).padStart(2, '0');
+      const now = new Date();
+      const iso = `${ymd(now)}T${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+      try {
+        await api('submit-bp', {
+          user_id: user.id,
+          datetime: iso,
+          systolic: Number(document.getElementById('fSys').value),
+          diastolic: Number(document.getElementById('fDia').value),
+          heart_rate: Number(document.getElementById('fHr').value),
+        });
+        const msg = document.getElementById('saveMsg');
+        msg.classList.remove('hidden');
+        setTimeout(() => msg.classList.add('hidden'), 2500);
+        document.getElementById('fSys').value = '';
+        document.getElementById('fDia').value = '';
+        document.getElementById('fHr').value = '';
+        reviewApi = null; // force refresh next time review is opened
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  }
+</script>

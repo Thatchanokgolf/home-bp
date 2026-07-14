@@ -1,0 +1,90 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Register</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <h1 class="font-semibold text-indigo-700" data-i18n="app_title"></h1>
+    <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow p-6">
+      <h2 class="text-xl font-semibold mb-5 text-slate-800" data-i18n="register_title"></h2>
+      <form id="regForm" class="space-y-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="email_opt"></label>
+          <input id="email" type="email" class="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="hospital_opt"></label>
+          <select id="hospital" class="w-full border rounded-lg px-3 py-2">
+            <option value="" data-i18n="select_hospital"></option>
+            <option value="Siriraj Hospital" data-i18n="siriraj"></option>
+            <option value="Srinagarind Hospital" data-i18n="srinagarind"></option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="hn_opt"></label>
+          <input id="hospital_id" class="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="password"></label>
+          <input id="password" type="password" class="w-full border rounded-lg px-3 py-2" required />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" data-i18n="reenter_pw"></label>
+          <input id="password2" type="password" class="w-full border rounded-lg px-3 py-2" required />
+        </div>
+        <div>
+          <span class="block text-sm text-slate-600 mb-1" data-i18n="shared_q"></span>
+          <label class="mr-4"><input type="radio" name="shared" value="yes" /> <span data-i18n="yes"></span></label>
+          <label><input type="radio" name="shared" value="no" checked /> <span data-i18n="no"></span></label>
+        </div>
+        <button class="w-full bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="submit"></button>
+      </form>
+
+      <div id="result" class="hidden mt-5 border-t pt-4">
+        <p class="text-green-600 font-medium mb-2" data-i18n="reg_success"></p>
+        <ul class="text-sm text-slate-700 space-y-1">
+          <li><span data-i18n="your_id"></span>: <b id="rId"></b></li>
+          <li><span data-i18n="col_email"></span>: <b id="rEmail"></b></li>
+          <li><span data-i18n="col_hospital"></span>: <b id="rHospital"></b></li>
+          <li><span data-i18n="col_hn"></span>: <b id="rHn"></b></li>
+        </ul>
+        <a href="index.html" class="inline-block mt-3 text-indigo-600 hover:underline" data-i18n="goto_login"></a>
+      </div>
+
+      <div class="mt-4 text-sm">
+        <a href="index.html" class="text-indigo-600 hover:underline" data-i18n="goto_login"></a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  document.getElementById('regForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const shared = document.querySelector('input[name="shared"]:checked').value;
+    try {
+      const { user } = await api('register', {
+        email: document.getElementById('email').value.trim(),
+        hospital: document.getElementById('hospital').value,
+        hospital_id: document.getElementById('hospital_id').value.trim(),
+        password: document.getElementById('password').value,
+        password2: document.getElementById('password2').value,
+        shared,
+      });
+      document.getElementById('rId').textContent = user.id;
+      document.getElementById('rEmail').textContent = user.email || '-';
+      document.getElementById('rHospital').textContent = user.hospital || '-';
+      document.getElementById('rHn').textContent = user.hospital_id || '-';
+      document.getElementById('result').classList.remove('hidden');
+      document.getElementById('regForm').reset();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+</script>

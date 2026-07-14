@@ -1,0 +1,78 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <h1 class="font-semibold text-indigo-700" data-i18n="app_title"></h1>
+    <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white rounded-2xl shadow p-6">
+      <h2 class="text-xl font-semibold mb-5 text-slate-800" data-i18n="login_title"></h2>
+      <form id="loginForm" class="space-y-4">
+        <input id="identifier" data-i18n-ph="id_or_email" class="w-full border rounded-lg px-3 py-2" />
+        <input id="password" type="password" data-i18n-ph="password" class="w-full border rounded-lg px-3 py-2" />
+        <button class="w-full bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="login_btn"></button>
+      </form>
+      <div class="flex justify-between mt-4 text-sm">
+        <a href="#" id="forgotLink" class="text-indigo-600 hover:underline" data-i18n="forgot_pw"></a>
+        <a href="register.html" class="text-indigo-600 hover:underline" data-i18n="go_register"></a>
+      </div>
+
+      <!-- Forgot password panel -->
+      <div id="forgotPanel" class="hidden mt-5 border-t pt-4">
+        <p class="text-sm text-slate-500 mb-2" data-i18n="forgot_prompt"></p>
+        <input id="forgotEmail" type="email" data-i18n-ph="email" class="w-full border rounded-lg px-3 py-2 mb-2" />
+        <div class="flex gap-2">
+          <button id="forgotSend" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="send"></button>
+          <button id="forgotCancel" class="flex-1 border rounded-lg py-2 hover:bg-slate-50" data-i18n="cancel"></button>
+        </div>
+        <p id="forgotMsg" class="text-sm mt-2"></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  // Already logged in? go to the right place.
+  const existing = getUser();
+  if (existing) location.href = existing.role === 'admin' ? 'admin.html' : 'user.html';
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const { user } = await api('login', {
+        identifier: document.getElementById('identifier').value,
+        password: document.getElementById('password').value,
+      });
+      setUser(user);
+      location.href = user.role === 'admin' ? 'admin.html' : 'user.html';
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  const panel = document.getElementById('forgotPanel');
+  document.getElementById('forgotLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    panel.classList.toggle('hidden');
+  });
+  document.getElementById('forgotCancel').addEventListener('click', () => panel.classList.add('hidden'));
+  document.getElementById('forgotSend').addEventListener('click', async () => {
+    const msg = document.getElementById('forgotMsg');
+    try {
+      const r = await api('forgot-password', { email: document.getElementById('forgotEmail').value });
+      msg.className = 'text-sm mt-2 text-green-600';
+      msg.textContent = r.sent
+        ? (getLang() === 'th' ? 'ส่งรหัสผ่านใหม่ไปที่อีเมลแล้ว' : 'A new password was e-mailed to you.')
+        : (getLang() === 'th' ? 'รหัสผ่านใหม่: ' : 'New password: ') + r.password;
+    } catch (err) {
+      msg.className = 'text-sm mt-2 text-red-600';
+      msg.textContent = err.message;
+    }
+  });
+</script>

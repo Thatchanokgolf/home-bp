@@ -1,0 +1,43 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Review</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <div>
+      <h1 class="font-semibold text-indigo-700" data-i18n="review_title"></h1>
+      <p id="who" class="text-xs text-slate-500"></p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="admin.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="back"></a>
+      <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+      <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto">
+    <div id="reviewContainer"></div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/review.js"></script>
+<script>
+  const admin = requireAuth('admin');
+  const userId = Number(new URLSearchParams(location.search).get('userId'));
+
+  (async () => {
+    if (!userId) {
+      location.href = 'admin.html';
+      return;
+    }
+    try {
+      const { user } = await api('user-get', { user_id: userId });
+      document.getElementById('who').textContent =
+        `ID ${user.id} · HN ${user.hospital_id || '-'} · ${user.hospital || '-'}`;
+    } catch {}
+    HomeBPReview.init(document.getElementById('reviewContainer'), userId);
+  })();
+</script>
