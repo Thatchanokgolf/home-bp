@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { sql, ok, bad, parse } = require('./_db');
+const { signToken } = require('./_auth');
 
 // POST /api/login
 // body: { identifier, password }  identifier = numeric ID or e-mail
@@ -20,14 +21,14 @@ exports.handler = async (event) => {
   const match = await bcrypt.compare(password, user.password);
   if (!match) return bad('Invalid credentials', 401);
 
-  return ok({
-    user: {
-      id: user.id,
-      email: user.email,
-      hospital: user.hospital,
-      hospital_id: user.hospital_id,
-      role: user.role,
-      shared: user.shared,
-    },
-  });
+  const safeUser = {
+    id: user.id,
+    email: user.email,
+    hospital: user.hospital,
+    hospital_id: user.hospital_id,
+    role: user.role,
+    shared: user.shared,
+  };
+
+  return ok({ user: safeUser, token: signToken(safeUser) });
 };

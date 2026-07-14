@@ -1,14 +1,28 @@
 // Tiny API + session helpers shared by every page.
+function getToken() {
+  return localStorage.getItem('hbp_token');
+}
+
 async function api(path, body) {
+  const token = getToken();
   const res = await fetch('/api/' + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    },
     body: JSON.stringify(body || {}),
   });
   let data = {};
   try {
     data = await res.json();
   } catch {}
+  // Expired / invalid session -> clear and bounce to login.
+  if (res.status === 401) {
+    clearSession();
+    if (!/index\.html$|\/$/.test(location.pathname)) location.href = 'index.html';
+    throw new Error(data.error || 'Session expired, please log in again');
+  }
   if (!res.ok) throw new Error(data.error || t('err_generic'));
   return data;
 }
@@ -20,17 +34,24 @@ function getUser() {
     return null;
   }
 }
-function setUser(u) {
-  localStorage.setItem('hbp_user', JSON.stringify(u));
+// Persist the logged-in user AND their auth token together.
+function setSession(user, token) {
+  localStorage.setItem('hbp_user', JSON.stringify(user));
+  if (token) localStorage.setItem('hbp_token', token);
+}
+function clearSession() {
+  localStorage.removeItem('hbp_user');
+  localStorage.removeItem('hbp_token');
 }
 function logout() {
-  localStorage.removeItem('hbp_user');
+  clearSession();
   location.href = 'index.html';
 }
 // Redirect to login if not authenticated; optionally require a role.
 function requireAuth(role) {
   const u = getUser();
-  if (!u) {
+  if (!u || !getToken()) {
+    clearSession();
     location.href = 'index.html';
     return null;
   }

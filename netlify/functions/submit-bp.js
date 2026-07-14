@@ -1,14 +1,19 @@
 const { sql, ok, bad, parse } = require('./_db');
+const { verify } = require('./_auth');
 
 // POST /api/submit-bp
-// body: { user_id, datetime (ISO local from client), systolic, diastolic, heart_rate }
+// body: { datetime (ISO local from client), systolic, diastolic, heart_rate }
+// - The reading is always saved for the authenticated user (from the token).
 // - AM/PM: 00:00-11:59 => AM, 12:00-23:59 => PM
 // - Recalculates the avg_bp row for that user/date/AM-PM.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
-  const { user_id, datetime, systolic, diastolic, heart_rate } = parse(event);
+  const auth = verify(event);
+  if (!auth) return bad('Unauthorized', 401);
 
-  if (!user_id) return bad('Missing user');
+  const { datetime, systolic, diastolic, heart_rate } = parse(event);
+  const user_id = auth.id; // identity comes from the token, not the request body
+
   if (systolic == null || diastolic == null || heart_rate == null)
     return bad('Systolic, diastolic and heart rate are required');
 

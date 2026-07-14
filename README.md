@@ -42,9 +42,12 @@ npx netlify dev              # serves public/ + functions at http://localhost:88
 
 1. Push this folder to a Git repo and "Add new site → Import" in Netlify
    (build settings come from `netlify.toml`: publish `public`, functions `netlify/functions`).
-2. In **Site settings → Environment variables**, add `DATABASE_URL` (your Neon
-   connection string). Optionally add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
-   `SMTP_PASS`, `SMTP_FROM` to enable the *Forgot my password* e-mail.
+2. In **Site settings → Environment variables**, add:
+   - `DATABASE_URL` — your Neon connection string (**required**).
+   - `JWT_SECRET` — a long random string used to sign login tokens (**required**;
+     generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
+   - Optionally `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+     to enable the *Forgot my password* e-mail.
 3. Run `npm run db:setup` and `npm run db:seed` once against the same Neon DB.
 
 ### Forgot-password behaviour
@@ -58,8 +61,20 @@ Computed from `avg_bp` over the selected range (default: last 7 days):
 average BP in **AM**, in **PM**, over **24h**, and monitoring frequency shown as
 `count / (2 × number of days)`.
 
-## Security notes
-This is a straightforward reference implementation: passwords are bcrypt-hashed,
-but sessions are held in `localStorage` and the functions trust the `user_id`
-sent by the client. Before real clinical use, add proper server-side sessions /
-JWT auth and authorization checks on every function.
+## Security / auth
+- **Passwords** are bcrypt-hashed at rest; login verifies with `bcrypt.compare`.
+- **Token-based auth (JWT).** On login the server issues a signed token
+  (`JWT_SECRET`, 8h expiry) holding `{ id, role }`. The client stores it in
+  `localStorage` and sends it as `Authorization: Bearer <token>` on every call.
+- **Server-side enforcement.** Every protected function verifies the token and
+  derives the user identity **from the token**, never from the request body:
+  - `submit-bp` always writes for the token's user.
+  - `bp-list` / `avg-list` / `user-get` allow the **owner**, or an **admin only
+    for users who set `shared = true`**.
+  - `admin-search` requires `role = 'admin'`.
+  - Invalid/expired token → `401`; not allowed → `403` (the client then bounces
+    to the login page).
+
+Remaining hardening you may still want for production: token refresh/rotation,
+password-strength rules at registration, rate-limiting on login/forgot-password,
+and moving the token to an httpOnly cookie (localStorage is readable by XSS).

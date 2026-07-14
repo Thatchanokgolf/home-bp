@@ -45,11 +45,11 @@
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const { user } = await api('login', {
+      const { user, token } = await api('login', {
         identifier: document.getElementById('identifier').value,
         password: document.getElementById('password').value,
       });
-      setUser(user);
+      setSession(user, token);
       location.href = user.role === 'admin' ? 'admin.html' : 'user.html';
     } catch (err) {
       alert(err.message);
