@@ -11,6 +11,7 @@
     </div>
     <div class="flex items-center gap-2">
       <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
+      <button id="themeToggle" onclick="toggleTheme()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">🌙</button>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>
@@ -24,7 +25,7 @@
   <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto pb-10">
     <!-- Submit pane -->
     <section id="paneSubmit">
-      <div class="bg-white rounded-2xl shadow p-6 max-w-md relative">
+      <div class="bg-white rounded-2xl shadow p-6 max-w-md relative mx-auto">
         <div id="liveDt" class="text-xs text-slate-400 mb-2"></div>
         <h2 class="text-lg font-semibold mb-4 text-slate-800" data-i18n="submit_bp_title"></h2>
         <form id="bpForm" class="space-y-3">
@@ -46,7 +47,7 @@
       </div>
 
       <!-- Last 5 readings -->
-      <div class="bg-white rounded-2xl shadow p-6 max-w-md mt-4">
+      <div class="bg-white rounded-2xl shadow p-6 max-w-md mt-4 mx-auto">
         <h3 class="text-sm font-semibold mb-3 text-slate-700" data-i18n="last5_title"></h3>
         <div id="last5"></div>
       </div>
@@ -67,7 +68,7 @@
       <li><span data-i18n="datetime"></span>: <b id="cDt"></b></li>
       <li><span data-i18n="systolic"></span>: <b id="cSys"></b> <span class="text-slate-400" data-i18n="unit_mmhg"></span></li>
       <li><span data-i18n="diastolic"></span>: <b id="cDia"></b> <span class="text-slate-400" data-i18n="unit_mmhg"></span></li>
-      <li><span data-i18n="heart_rate"></span>: <b id="cHr"></b> <span class="text-slate-400" data-i18n="unit_bpm"></span></li>
+      <li class="text-red-600">❤️ <span data-i18n="heart_rate"></span>: <b id="cHr"></b> <span class="text-red-400" data-i18n="unit_bpm"></span></li>
     </ul>
     <div class="flex gap-2">
       <button id="cConfirm" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="confirm"></button>
@@ -102,6 +103,7 @@
       const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright');
       tick();
     };
+    window.onThemeChange = () => { if (reviewApi) reviewApi.reload(); };
     document.addEventListener('DOMContentLoaded', renderFooter);
 
     // ---- last 5 readings ----
@@ -111,12 +113,12 @@
         const box = document.getElementById('last5');
         if (!rows.length) { box.innerHTML = `<p class="text-slate-400 text-sm">${t('no_data')}</p>`; return; }
         const head = ['col_date', 'col_sys', 'col_dia', 'col_hr']
-          .map((k) => `<th class="px-2 py-1 text-left font-medium">${t(k)}</th>`).join('');
+          .map((k) => `<th class="px-2 py-1 text-left font-medium ${k === 'col_hr' ? 'text-red-600' : ''}">${k === 'col_hr' ? '❤️ ' : ''}${t(k)}</th>`).join('');
         const body = rows.map((r) => `<tr class="border-t">
           <td class="px-2 py-1 whitespace-nowrap">${fmtDateHM(r.date, r.time)}</td>
           <td class="px-2 py-1">${r.systolic}</td>
           <td class="px-2 py-1">${r.diastolic}</td>
-          <td class="px-2 py-1">${r.heart_rate}</td></tr>`).join('');
+          <td class="px-2 py-1 text-red-600 font-medium">${r.heart_rate}</td></tr>`).join('');
         box.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">
           <thead class="text-slate-500">${head}</thead><tbody>${body}</tbody></table></div>`;
       } catch (e) { /* ignore */ }

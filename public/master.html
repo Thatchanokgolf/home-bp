@@ -9,7 +9,9 @@
       <p class="text-xs text-slate-500" data-i18n="master_title"></p>
     </div>
     <div class="flex items-center gap-2">
+      <a href="admin.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="admin_link"></a>
       <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
+      <button id="themeToggle" onclick="toggleTheme()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">🌙</button>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>

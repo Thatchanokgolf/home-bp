@@ -5,13 +5,44 @@ const HomeBPReview = (() => {
   let lineChart = null;
   const MAX_BARS = 14;
 
+  // Inline plugin: dashed reference lines at clinical thresholds (systolic 130, diastolic 80).
+  const thresholdLines = {
+    id: 'thresholdLines',
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      const y = scales.y;
+      if (!y || !chartArea) return;
+      const { left, right } = chartArea;
+      ctx.save();
+      [{ v: 130, color: '#ef4444' }, { v: 80, color: '#f59e0b' }].forEach(({ v, color }) => {
+        const yy = y.getPixelForValue(v);
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = color;
+        ctx.moveTo(left, yy);
+        ctx.lineTo(right, yy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        ctx.font = '10px sans-serif';
+        ctx.fillText(v + ' mmHg', left + 4, yy - 3);
+      });
+      ctx.restore();
+    },
+  };
+
   const r = (v) => (v == null ? null : Math.round(Number(v)));
   const u = (key) => `<span class="text-slate-400 text-xs">${t(key)}</span>`;
 
-  // Summary value: "120/80 mmHg · HR 72 bpm" (integers)
+  // Summary value: BP on the first line, heart rate on a smaller red second line.
   function bpLine(o) {
     if (!o || o.systolic == null) return '-';
-    return `${r(o.systolic)}/${r(o.diastolic)} ${u('unit_mmhg')} · ${t('hr_prefix')} ${r(o.heart_rate)} ${u('unit_bpm')}`;
+    return (
+      `${r(o.systolic)}/${r(o.diastolic)} ${u('unit_mmhg')}` +
+      `<div class="text-red-600 text-xs font-normal mt-1">` +
+      `${t('hr_prefix')} ${r(o.heart_rate)} <span class="text-red-400">${t('unit_bpm')}</span></div>`
+    );
   }
 
   function template() {
@@ -39,6 +70,12 @@ const HomeBPReview = (() => {
       <div class="js-pane-all"></div>
       <div class="js-pane-avg hidden"></div>
       <div class="js-pane-graph hidden">
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button class="js-tf text-xs rounded-full px-3 py-1 bg-indigo-600 text-white" data-tf="ampm" data-i18n="tf_ampm"></button>
+          <button class="js-tf text-xs rounded-full px-3 py-1 bg-slate-100 text-slate-600" data-tf="daily" data-i18n="tf_daily"></button>
+          <button class="js-tf text-xs rounded-full px-3 py-1 bg-slate-100 text-slate-600" data-tf="weekly" data-i18n="tf_weekly"></button>
+          <button class="js-tf text-xs rounded-full px-3 py-1 bg-slate-100 text-slate-600" data-tf="monthly" data-i18n="tf_monthly"></button>
+        </div>
         <div class="relative w-full" style="height:280px"><canvas class="js-canvas-bp"></canvas></div>
         <div class="relative w-full mt-8" style="height:220px"><canvas class="js-canvas-hr"></canvas></div>
       </div>
@@ -65,6 +102,7 @@ const HomeBPReview = (() => {
     if (!rows.length) return `<p class="text-slate-400 py-6 text-center">${t('no_data')}</p>`;
     const head =
       `<th class="px-3 py-2 text-left font-medium">${t('col_date')}</th>` +
+      `<th class="px-3 py-2 text-left font-medium">${t('col_time')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_sys')} ${t('unit_mmhg')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_dia')} ${t('unit_mmhg')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_hr')} ${t('unit_bpm')}</th>` +
@@ -73,6 +111,7 @@ const HomeBPReview = (() => {
       .map(
         (row) => `<tr class="border-t">
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)}</td>
+          <td class="px-3 py-2 whitespace-nowrap">${fmtHM(row.time)}</td>
           <td class="px-3 py-2">${row.systolic}</td>
           <td class="px-3 py-2">${row.diastolic}</td>
           <td class="px-3 py-2">${row.heart_rate}</td>
@@ -106,21 +145,75 @@ const HomeBPReview = (() => {
       <thead class="bg-slate-50 text-slate-600">${head}</thead><tbody>${body}</tbody></table></div>`;
   }
 
-  function drawCharts(canvasBp, canvasHr, rows) {
-    const data = rows.slice(-MAX_BARS); // at most 14, most recent
-    const labels = data.map((row) => `${fmtDate(row.date)} ${row.ampm}`);
+  // Monday of the week containing d (local time).
+  function weekStart(d) {
+    const nd = new Date(d);
+    const day = (nd.getDay() + 6) % 7; // Mon = 0
+    nd.setDate(nd.getDate() - day);
+    nd.setHours(0, 0, 0, 0);
+    return nd;
+  }
+
+  // Aggregate avg_bp rows into chart items {label, systolic, diastolic, heart_rate}
+  // by timeframe: 'ampm' (per date+AM/PM), 'daily', 'weekly', 'monthly'.
+  function aggregate(rows, tf) {
+    if (tf === 'ampm') {
+      return rows.map((row) => ({
+        label: `${fmtDate(row.date)} ${row.ampm}`,
+        systolic: Number(row.systolic), diastolic: Number(row.diastolic), heart_rate: Number(row.heart_rate),
+      }));
+    }
+    const buckets = new Map();
+    rows.forEach((row) => {
+      const d = new Date(row.date + 'T00:00:00');
+      let key, label, sortKey;
+      if (tf === 'daily') {
+        key = row.date; sortKey = row.date; label = fmtDate(row.date);
+      } else if (tf === 'weekly') {
+        const ws = ymd(weekStart(d)); key = ws; sortKey = ws; label = fmtDate(ws);
+      } else { // monthly
+        const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0');
+        key = `${y}-${m}`; sortKey = key; label = `${m}/${y}`;
+      }
+      let b = buckets.get(key);
+      if (!b) { b = { sumS: 0, sumD: 0, sumH: 0, n: 0, label, sortKey }; buckets.set(key, b); }
+      b.sumS += Number(row.systolic); b.sumD += Number(row.diastolic); b.sumH += Number(row.heart_rate); b.n++;
+    });
+    return [...buckets.values()]
+      .sort((a, b) => (a.sortKey < b.sortKey ? -1 : 1))
+      .map((b) => ({ label: b.label, systolic: b.sumS / b.n, diastolic: b.sumD / b.n, heart_rate: b.sumH / b.n }));
+  }
+
+  function drawCharts(canvasBp, canvasHr, items) {
+    const data = items.slice(-MAX_BARS); // at most 14, most recent
+    const labels = data.map((row) => row.label);
+
+    // Theme-aware axis / legend colors.
+    const dark = document.documentElement.classList.contains('hbp-dark');
+    const tickColor = dark ? '#cbd5e1' : '#475569';
+    const gridColor = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
 
     if (barChart) barChart.destroy();
     barChart = new Chart(canvasBp.getContext('2d'), {
       type: 'bar',
+      plugins: [thresholdLines],
       data: {
         labels,
+        // Floating bar: diastolic is the base, the systolic segment is the
+        // gap (systolic - diastolic) so the bar tops out at the systolic value.
         datasets: [
-          { label: t('graph_sys_full'), data: data.map((row) => r(row.systolic)), backgroundColor: '#4f46e5' },
-          { label: t('graph_dia_full'), data: data.map((row) => r(row.diastolic)), backgroundColor: '#06b6d4' },
+          { label: t('graph_dia_full'), data: data.map((row) => r(row.diastolic)), backgroundColor: '#06b6d4', maxBarThickness: 32 },
+          { label: t('graph_sys_full'), data: data.map((row) => r(row.systolic) - r(row.diastolic)), backgroundColor: '#4f46e5', maxBarThickness: 32 },
         ],
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { color: tickColor } } },
+        scales: {
+          x: { stacked: true, ticks: { color: tickColor }, grid: { color: gridColor } },
+          y: { stacked: true, beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } },
+        },
+      },
     });
 
     if (lineChart) lineChart.destroy();
@@ -133,7 +226,14 @@ const HomeBPReview = (() => {
             borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)', tension: 0.3, fill: true },
         ],
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: false } } },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { color: tickColor } } },
+        scales: {
+          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+          y: { beginAtZero: false, ticks: { color: tickColor }, grid: { color: gridColor } },
+        },
+      },
     });
   }
 
@@ -168,6 +268,11 @@ const HomeBPReview = (() => {
 
     let avgRows = [];
     let currentTab = 'all';
+    let timeframe = 'ampm';
+
+    function drawGraph() {
+      drawCharts($('.js-canvas-bp'), $('.js-canvas-hr'), aggregate(avgRows, timeframe));
+    }
 
     function activate(tab) {
       currentTab = tab;
@@ -181,7 +286,7 @@ const HomeBPReview = (() => {
       $('.js-pane-all').classList.toggle('hidden', tab !== 'all');
       $('.js-pane-avg').classList.toggle('hidden', tab !== 'avg');
       $('.js-pane-graph').classList.toggle('hidden', tab !== 'graph');
-      if (tab === 'graph') drawCharts($('.js-canvas-bp'), $('.js-canvas-hr'), avgRows);
+      if (tab === 'graph') drawGraph();
     }
 
     function wireDelete() {
@@ -213,7 +318,17 @@ const HomeBPReview = (() => {
       });
     }
 
+    let isLoading = false;
     async function load() {
+      // Guard against re-entrancy: applyI18n() below fires window.onLangChange,
+      // which some pages wire to reviewApi.reload() — without this guard that
+      // would recurse into load() forever.
+      if (isLoading) return;
+      isLoading = true;
+      const loadingHtml = `<p class="text-slate-400 py-6 text-center">${t('loading')}</p>`;
+      $('.js-pane-all').innerHTML = loadingHtml;
+      $('.js-pane-avg').innerHTML = loadingHtml;
+      $('.js-summary').innerHTML = '';
       try {
         const [all, avg] = await Promise.all([
           api('bp-list', { user_id: userId, from: from.value, to: to.value }),
@@ -228,11 +343,27 @@ const HomeBPReview = (() => {
         activate(currentTab);
       } catch (e) {
         alert(e.message);
+      } finally {
+        isLoading = false;
       }
     }
 
     container.querySelectorAll('.js-t').forEach((b) =>
       b.addEventListener('click', () => activate(b.dataset.tab))
+    );
+    // Timeframe selector for the graph (AM-PM / daily / weekly / monthly).
+    container.querySelectorAll('.js-tf').forEach((b) =>
+      b.addEventListener('click', () => {
+        timeframe = b.dataset.tf;
+        container.querySelectorAll('.js-tf').forEach((x) => {
+          const on = x.dataset.tf === timeframe;
+          x.classList.toggle('bg-indigo-600', on);
+          x.classList.toggle('text-white', on);
+          x.classList.toggle('bg-slate-100', !on);
+          x.classList.toggle('text-slate-600', !on);
+        });
+        drawGraph();
+      })
     );
     $('.js-apply').addEventListener('click', load);
 

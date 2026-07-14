@@ -7,7 +7,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
   const auth = verify(event);
   if (!auth) return bad('Unauthorized', 401);
-  if (auth.role !== 'admin') return bad('Forbidden', 403);
+  if (auth.role !== 'admin' && auth.role !== 'master') return bad('Forbidden', 403);
 
   const { query } = parse(event);
   if (!query || !String(query).trim()) return bad('Please enter an ID or HN to search');

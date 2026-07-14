@@ -47,7 +47,7 @@ function logout() {
   clearSession();
   location.href = 'index.html';
 }
-// Redirect to login if not authenticated; optionally require a role.
+// Redirect to login if not authenticated; optionally require a role (string or array).
 function requireAuth(role) {
   const u = getUser();
   if (!u || !getToken()) {
@@ -55,9 +55,12 @@ function requireAuth(role) {
     location.href = 'index.html';
     return null;
   }
-  if (role && u.role !== role) {
-    location.href = u.role === 'admin' ? 'admin.html' : 'user.html';
-    return null;
+  if (role) {
+    const allowed = Array.isArray(role) ? role : [role];
+    if (!allowed.includes(u.role)) {
+      location.href = u.role === 'admin' ? 'admin.html' : u.role === 'master' ? 'master.html' : 'user.html';
+      return null;
+    }
   }
   return u;
 }
@@ -110,3 +113,62 @@ function renderFooter() {
   f.textContent = t('copyright');
   document.body.appendChild(f);
 }
+
+// ----- dark mode (logged-in pages) -----
+// Reskins standard utility classes when <html> has .hbp-dark, using the same
+// gradient as the login page. Only active on pages that render #themeToggle.
+function getTheme() {
+  return localStorage.getItem('hbp_theme') || 'light';
+}
+function applyTheme() {
+  const dark = getTheme() === 'dark';
+  document.documentElement.classList.toggle('hbp-dark', dark);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+  if (typeof window.onThemeChange === 'function') window.onThemeChange();
+}
+function toggleTheme() {
+  localStorage.setItem('hbp_theme', getTheme() === 'dark' ? 'light' : 'dark');
+  applyTheme();
+}
+function injectDarkCss() {
+  if (document.getElementById('hbpDarkCss')) return;
+  const s = document.createElement('style');
+  s.id = 'hbpDarkCss';
+  s.textContent = `
+    .hbp-dark .bg-slate-100 {
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,0.28), transparent 60%),
+        radial-gradient(900px 500px at 110% 20%, rgba(6,182,212,0.20), transparent 55%),
+        linear-gradient(160deg, #05060a 0%, #0b1020 55%, #05060a 100%) !important;
+      background-attachment: fixed !important;
+    }
+    .hbp-dark body { background: #05060a; color: #e5e7eb; }
+    .hbp-dark .bg-white { background: rgba(17,20,32,0.82) !important; }
+    /* Bordered buttons/links (header, modal Cancel) need a visible surface. */
+    .hbp-dark button.border, .hbp-dark a.border { background: rgba(255,255,255,0.06) !important; }
+    .hbp-dark .bg-slate-50 { background: rgba(255,255,255,0.05) !important; }
+    .hbp-dark .text-slate-800 { color: #e5e7eb !important; }
+    .hbp-dark .text-slate-700 { color: #d8dee9 !important; }
+    .hbp-dark .text-slate-600 { color: #c3ccd9 !important; }
+    .hbp-dark .text-slate-500 { color: #9aa6b6 !important; }
+    .hbp-dark .text-slate-400 { color: #8b95a6 !important; }
+    .hbp-dark .border, .hbp-dark .border-t, .hbp-dark .border-b { border-color: rgba(255,255,255,0.12) !important; }
+    .hbp-dark input, .hbp-dark select, .hbp-dark textarea {
+      background: rgba(255,255,255,0.06) !important;
+      color: #e5e7eb !important;
+      border-color: rgba(255,255,255,0.15) !important;
+      color-scheme: dark;
+    }
+    .hbp-dark input::placeholder { color: #8b95a6 !important; }
+    .hbp-dark .disabled\\:bg-slate-100:disabled { background: rgba(255,255,255,0.03) !important; }
+    .hbp-dark .hover\\:bg-slate-50:hover { background: rgba(255,255,255,0.08) !important; }
+  `;
+  document.head.appendChild(s);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('themeToggle')) {
+    injectDarkCss();
+    applyTheme();
+  }
+});

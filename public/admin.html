@@ -9,7 +9,9 @@
       <p class="text-xs text-slate-500" data-i18n="admin_title"></p>
     </div>
     <div class="flex items-center gap-2">
+      <a id="masterLink" href="master.html" class="hidden text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="master_link"></a>
       <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
+      <button id="themeToggle" onclick="toggleTheme()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">🌙</button>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>
@@ -35,7 +37,10 @@
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script>
-  const admin = requireAuth('admin');
+  const admin = requireAuth(['admin', 'master']);
+  if (admin && admin.role === 'master') {
+    document.getElementById('masterLink').classList.remove('hidden');
+  }
   document.addEventListener('DOMContentLoaded', renderFooter);
   window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
 

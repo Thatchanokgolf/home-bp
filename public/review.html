@@ -12,6 +12,7 @@
     <div class="flex items-center gap-2">
       <a id="backLink" href="admin.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="back"></a>
       <a href="settings.html" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" data-i18n="settings"></a>
+      <button id="themeToggle" onclick="toggleTheme()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">🌙</button>
       <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
       <button onclick="logout()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50 text-red-600" data-i18n="logout"></button>
     </div>
@@ -37,6 +38,7 @@
     const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright');
     if (reviewApi) reviewApi.reload();
   };
+  window.onThemeChange = () => { if (reviewApi) reviewApi.reload(); };
 
   (async () => {
     if (!me) return;
