@@ -14,7 +14,7 @@
       <form id="regForm" class="space-y-3">
         <div>
           <label class="block text-sm text-slate-600 mb-1" data-i18n="email_req"></label>
-          <input id="email" type="email" required class="w-full border rounded-lg px-3 py-2" />
+          <input id="email" type="email" class="w-full border rounded-lg px-3 py-2" />
         </div>
         <div>
           <label class="block text-sm text-slate-600 mb-1" data-i18n="username_label"></label>
@@ -96,8 +96,7 @@
   });
 
   function validate(v) {
-    if (!v.email) return t('v_email_req');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return t('v_email_bad');
+    if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return t('v_email_bad');
     if (v.username) {
       if (v.username.includes('@')) return t('v_username_at');
       if (!/[A-Za-z]/.test(v.username)) return t('v_username_letter');

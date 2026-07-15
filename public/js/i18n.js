@@ -30,7 +30,7 @@ const STRINGS = {
 
     // register
     register_title: 'ลงทะเบียน',
-    email_req: 'อีเมล (จำเป็น)',
+    email_req: 'อีเมล (ไม่บังคับ)',
     hospital_opt: 'โรงพยาบาล (ไม่บังคับ)',
     select_hospital: '-- เลือกโรงพยาบาล --',
     siriraj: 'โรงพยาบาลศิริราช',
@@ -182,7 +182,7 @@ const STRINGS = {
     send: 'Send',
 
     register_title: 'Registration',
-    email_req: 'E-mail (required)',
+    email_req: 'E-mail (optional)',
     hospital_opt: 'Hospital (optional)',
     select_hospital: '-- Select hospital --',
     siriraj: 'Siriraj Hospital',

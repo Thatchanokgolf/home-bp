@@ -15,10 +15,14 @@ CREATE TABLE IF NOT EXISTS users (
   password     TEXT    NOT NULL,        -- bcrypt hash
   shared       BOOLEAN NOT NULL DEFAULT true       -- shared to doctor yes/no
 );
--- Uniqueness (Postgres allows multiple NULLs, so optional fields stay optional)
-CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email       ON users (email);
+-- Uniqueness (Postgres allows multiple NULLs, so optional fields stay optional).
+-- E-mail and username are case-insensitive (indexed on LOWER()).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email       ON users (LOWER(email));
 CREATE UNIQUE INDEX IF NOT EXISTS uq_users_hospital_id ON users (hospital_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username    ON users (username);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username    ON users (LOWER(username));
+
+-- IDs start at 1000.
+ALTER SEQUENCE users_id_seq RESTART WITH 1000;
 
 -- 2. BP Database (every individual reading)
 CREATE TABLE IF NOT EXISTS bp_readings (

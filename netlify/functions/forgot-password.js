@@ -16,7 +16,7 @@ exports.handler = async (event) => {
   const { email } = parse(event);
   if (!email) return bad('Please enter the e-mail you registered with');
 
-  const rows = await sql`SELECT id, email FROM users WHERE email = ${email}`;
+  const rows = await sql`SELECT id, email FROM users WHERE LOWER(email) = LOWER(${email})`;
   if (!rows.length) return bad('No account with an e-mail matches that address', 404);
 
   const pass = newPassword();

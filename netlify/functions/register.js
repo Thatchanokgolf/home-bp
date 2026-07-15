@@ -9,6 +9,7 @@ const HOSPITALS = ['Siriraj Hospital', 'Srinagarind Hospital'];
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
   const b = parse(event);
+  // Case is preserved for display; matching/uniqueness is case-insensitive (LOWER()).
   const email = (b.email || '').trim();
   const hospital = (b.hospital || '').trim();
   const hospital_id = (b.hospital_id || '').trim();
@@ -19,9 +20,8 @@ exports.handler = async (event) => {
   const password2 = b.password2 || '';
   const shared = b.shared === true || b.shared === 'yes';
 
-  // E-mail is mandatory + basic format check
-  if (!email) return bad('E-mail is required');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('Invalid e-mail format');
+  // E-mail is optional; validate format only if one was provided.
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('Invalid e-mail format');
 
   // Password: >= 8 chars, must contain letters AND numbers
   if (!password || !password2) return bad('Password is required');
@@ -45,20 +45,33 @@ exports.handler = async (event) => {
     if (!/[A-Za-z]/.test(username)) return bad('Username must contain at least one letter');
   }
 
-  // Duplicate checks (specific messages)
-  if ((await sql`SELECT 1 FROM users WHERE email = ${email}`).length)
+  // Duplicate checks (case-insensitive, specific messages)
+  if (email && (await sql`SELECT 1 FROM users WHERE LOWER(email) = LOWER(${email})`).length)
     return bad('An account with this e-mail already exists');
   if (hospital_id && (await sql`SELECT 1 FROM users WHERE hospital_id = ${hospital_id}`).length)
     return bad('An account with this Hospital ID already exists');
-  if (username && (await sql`SELECT 1 FROM users WHERE username = ${username}`).length)
+  if (username && (await sql`SELECT 1 FROM users WHERE LOWER(username) = LOWER(${username})`).length)
     return bad('This username is already taken');
 
   const hash = await bcrypt.hash(password, 10);
   const rows = await sql`
     INSERT INTO users (email, hospital, hospital_id, username, first_name, last_name, role, password, shared)
-    VALUES (${email}, ${hospital || null}, ${hospital_id || null}, ${username || null},
+    VALUES (${email || null}, ${hospital || null}, ${hospital_id || null}, ${username || null},
             ${first_name || null}, ${last_name || null}, 'user', ${hash}, ${shared})
     RETURNING id, email, hospital, hospital_id, username, first_name, last_name, role, shared`;
+  let user = rows[0];
 
-  return ok({ user: rows[0] });
+  // No username given -> auto-assign "user<id>" (id is known only after insert).
+  if (!user.username) {
+    try {
+      const upd = await sql`
+        UPDATE users SET username = ${'user' + user.id} WHERE id = ${user.id}
+        RETURNING id, email, hospital, hospital_id, username, first_name, last_name, role, shared`;
+      user = upd[0];
+    } catch (e) {
+      // Extremely unlikely name clash: leave username null rather than fail registration.
+    }
+  }
+
+  return ok({ user });
 };

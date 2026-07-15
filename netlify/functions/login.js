@@ -14,7 +14,8 @@ exports.handler = async (event) => {
   if (/^\d+$/.test(idf)) {
     rows = await sql`SELECT * FROM users WHERE id = ${Number(idf)}`;
   } else {
-    rows = await sql`SELECT * FROM users WHERE email = ${idf} OR username = ${idf}`;
+    // Case-insensitive match on e-mail or username.
+    rows = await sql`SELECT * FROM users WHERE LOWER(email) = LOWER(${idf}) OR LOWER(username) = LOWER(${idf})`;
   }
   if (!rows.length) return bad('Invalid credentials', 401);
 
