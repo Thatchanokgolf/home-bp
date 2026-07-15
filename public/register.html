@@ -63,13 +63,7 @@
 
       <div id="result" class="hidden mt-5 border-t pt-4">
         <p class="text-green-600 font-medium mb-2" data-i18n="reg_success"></p>
-        <ul class="text-sm text-slate-700 space-y-1">
-          <li><span data-i18n="your_id"></span>: <b id="rId"></b></li>
-          <li><span data-i18n="col_email"></span>: <b id="rEmail"></b></li>
-          <li><span data-i18n="username_label"></span>: <b id="rUsername"></b></li>
-          <li><span data-i18n="col_hospital"></span>: <b id="rHospital"></b></li>
-          <li><span data-i18n="col_hn"></span>: <b id="rHn"></b></li>
-        </ul>
+        <ul id="resultList" class="text-sm text-slate-700 space-y-1"></ul>
         <p class="mt-3 text-sm font-medium text-amber-600" data-i18n="screenshot_prompt"></p>
         <a href="index.html" class="inline-block mt-3 text-indigo-600 hover:underline" data-i18n="goto_login"></a>
       </div>
@@ -131,14 +125,42 @@
     btn.disabled = true; // block double-clicks while awaiting
     try {
       const { user } = await api('register', v);
-      document.getElementById('rId').textContent = user.id;
-      document.getElementById('rEmail').textContent = user.email || '-';
-      document.getElementById('rUsername').textContent = user.username || '-';
-      document.getElementById('rHospital').textContent = user.hospital || '-';
-      document.getElementById('rHn').textContent = user.hospital_id || '-';
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+      // Email + Username always; Hospital / HN / First / Last only when present.
+      const rows = [['col_email', user.email || '-']];
+      if (user.hospital) rows.push(['col_hospital', user.hospital]);
+      if (user.hospital_id) rows.push(['col_hn', user.hospital_id]);
+      if (user.first_name) rows.push(['fn_label', user.first_name]);
+      if (user.last_name) rows.push(['ln_label', user.last_name]);
+      rows.push(['col_username', user.username || '-']);
+
+      let html = rows
+        .map(([k, val]) => `<li><span data-i18n="${k}"></span>: <b>${esc(val)}</b></li>`)
+        .join('');
+      html += `<li>
+        <span data-i18n="password"></span>:
+        <b id="rPw">••••••••</b>
+        <button id="pwToggle" type="button" class="text-indigo-600 hover:underline ml-1"></button>
+      </li>`;
+      document.getElementById('resultList').innerHTML = html;
+
+      // Password reveal toggle (the password the user just typed).
+      const realPw = v.password;
+      let shown = false;
+      const pwEl = document.getElementById('rPw');
+      const pwBtn = document.getElementById('pwToggle');
+      const renderPw = () => {
+        pwEl.textContent = shown ? realPw : '••••••••';
+        pwBtn.textContent = shown ? t('pw_hide') : t('pw_show');
+      };
+      pwBtn.addEventListener('click', () => { shown = !shown; renderPw(); });
+
       document.getElementById('result').classList.remove('hidden');
       document.getElementById('regForm').classList.add('hidden');
       document.getElementById('loginLink').classList.add('hidden'); // remove duplicate link
+      applyI18n(); // translate the newly injected labels
+      renderPw();
     } catch (err) {
       alert(err.message);
       btn.disabled = false;
