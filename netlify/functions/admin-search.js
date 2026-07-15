@@ -2,7 +2,8 @@ const { sql, ok, bad, parse } = require('./_db');
 const { verify } = require('./_auth');
 
 // POST /api/admin-search  body: { query }
-// Admin only. Searches shared=true users by ID or HN (hospital_id).
+// Admin/master only. Searches shared=true users in the admin's OWN hospital,
+// matching by ID, HN (hospital_id), first name, or last name.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
   const auth = verify(event);
@@ -10,24 +11,24 @@ exports.handler = async (event) => {
   if (auth.role !== 'admin' && auth.role !== 'master') return bad('Forbidden', 403);
 
   const { query } = parse(event);
-  if (!query || !String(query).trim()) return bad('Please enter an ID or HN to search');
+  if (!query || !String(query).trim()) return bad('Please enter an ID, HN, or name to search');
   const q = String(query).trim();
 
-  let rows;
-  if (/^\d+$/.test(q)) {
-    rows = await sql`
-      SELECT id, email, hospital, hospital_id, shared
-      FROM users
-      WHERE shared = true AND role = 'user'
-        AND (id = ${Number(q)} OR hospital_id = ${q})
-      ORDER BY id`;
-  } else {
-    rows = await sql`
-      SELECT id, email, hospital, hospital_id, shared
-      FROM users
-      WHERE shared = true AND role = 'user' AND hospital_id = ${q}
-      ORDER BY id`;
-  }
+  // Restrict results to the admin's own hospital.
+  const me = await sql`SELECT hospital FROM users WHERE id = ${auth.id}`;
+  const hospital = me.length ? me[0].hospital : null;
+  if (!hospital) return ok({ rows: [], hospital: null });
 
-  return ok({ rows });
+  const numId = /^\d+$/.test(q) ? Number(q) : -1;
+  const rows = await sql`
+    SELECT id, hospital, hospital_id, username, first_name, last_name, shared
+    FROM users
+    WHERE shared = true AND role = 'user' AND hospital = ${hospital}
+      AND ( id = ${numId}
+         OR LOWER(hospital_id) = LOWER(${q})
+         OR LOWER(first_name) = LOWER(${q})
+         OR LOWER(last_name) = LOWER(${q}) )
+    ORDER BY id`;
+
+  return ok({ rows, hospital });
 };

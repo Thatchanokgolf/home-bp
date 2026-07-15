@@ -58,13 +58,12 @@
       box.innerHTML = `<p class="text-slate-400 text-center py-6">${t(mode === 'hospital' ? 'no_data' : 'no_results')}</p>`;
       return;
     }
-    const cols = ['col_id', 'col_name', 'col_username', 'col_email', 'col_hospital', 'col_hn', ''];
+    const cols = ['col_id', 'col_name', 'col_username', 'col_hospital', 'col_hn', ''];
     const head = cols.map((k) => `<th class="px-3 py-2 text-left font-medium">${k ? t(k) : ''}</th>`).join('');
     const body = rows.map((r) => `<tr class="border-t">
       <td class="px-3 py-2">${r.id}</td>
       <td class="px-3 py-2">${fullName(r)}</td>
       <td class="px-3 py-2">${r.username || '-'}</td>
-      <td class="px-3 py-2">${r.email || '-'}</td>
       <td class="px-3 py-2">${r.hospital || '-'}</td>
       <td class="px-3 py-2">${r.hospital_id || '-'}</td>
       <td class="px-3 py-2"><a href="review.html?userId=${r.id}" class="text-indigo-600 hover:underline">${t('review_record')}</a></td>
@@ -78,7 +77,11 @@
     mode = 'search';
     document.getElementById('pager').classList.add('hidden');
     try {
-      const { rows } = await api('admin-search', { query: document.getElementById('q').value });
+      const { rows, hospital } = await api('admin-search', { query: document.getElementById('q').value });
+      if (hospital === null) {
+        document.getElementById('results').innerHTML = `<p class="text-amber-600 text-center py-6">${t('no_hospital')}</p>`;
+        return;
+      }
       renderRows(rows);
     } catch (err) { alert(err.message); }
   });

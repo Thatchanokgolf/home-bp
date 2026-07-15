@@ -131,7 +131,7 @@ const STRINGS = {
 
     // admin
     admin_title: 'หน้าผู้ดูแล (แพทย์)',
-    search_ph: 'ค้นหาด้วย ไอดี หรือ HN',
+    search_ph: 'ค้นหาด้วย ไอดี, HN, ชื่อ หรือ นามสกุล',
     search: 'ค้นหา',
     no_results: 'ไม่พบข้อมูล (ค้นหาได้เฉพาะผู้ที่แชร์ข้อมูล)',
     col_id: 'ไอดี',
@@ -290,7 +290,7 @@ const STRINGS = {
     deleted_ok: 'Reading deleted',
 
     admin_title: 'Admin Page (Doctor)',
-    search_ph: 'Search by ID or HN',
+    search_ph: 'Search by ID, HN, first or last name',
     search: 'Search',
     no_results: 'No results (only users who shared their data are searchable)',
     col_id: 'ID',
