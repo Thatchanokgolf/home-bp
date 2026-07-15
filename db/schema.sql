@@ -11,9 +11,10 @@ CREATE TABLE IF NOT EXISTS users (
   username     TEXT,                    -- optional; unique; has a letter, no '@'
   first_name   TEXT,                    -- optional (Thai)
   last_name    TEXT,                    -- optional (Thai)
-  role         TEXT    NOT NULL DEFAULT 'user',   -- 'user' | 'admin' | 'master'
-  password     TEXT    NOT NULL,        -- bcrypt hash
-  shared       BOOLEAN NOT NULL DEFAULT true       -- shared to doctor yes/no
+  role          TEXT    NOT NULL DEFAULT 'user',   -- 'user' | 'admin' | 'master'
+  password      TEXT    NOT NULL,        -- bcrypt hash
+  shared        BOOLEAN NOT NULL DEFAULT true,      -- shared to doctor yes/no
+  hash_password TEXT                     -- bcrypt hash of the 20-letter QR login code
 );
 -- Uniqueness (Postgres allows multiple NULLs, so optional fields stay optional).
 -- E-mail and username are case-insensitive (indexed on LOWER()).

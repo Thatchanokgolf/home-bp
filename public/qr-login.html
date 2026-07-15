@@ -1,0 +1,69 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — QR Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .hbp-bg {
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,0.28), transparent 60%),
+      radial-gradient(900px 500px at 110% 20%, rgba(6,182,212,0.20), transparent 55%),
+      linear-gradient(160deg, #05060a 0%, #0b1020 55%, #05060a 100%);
+  }
+  .hbp-card { background: rgba(17,20,32,0.72); backdrop-filter: blur(10px); }
+</style>
+<div class="min-h-screen hbp-bg flex flex-col text-slate-100">
+  <header class="flex items-center justify-between px-5 py-3">
+    <h1 class="font-semibold text-lg tracking-tight text-white" data-i18n="app_title_monitor"></h1>
+    <button id="langToggle" onclick="toggleLang()" class="text-sm border border-white/20 rounded-lg px-3 py-1 hover:bg-white/10"></button>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm hbp-card rounded-2xl shadow-2xl border border-white/10 p-6">
+      <h2 class="text-xl font-semibold mb-2" data-i18n="qr_login_title"></h2>
+      <p class="text-sm text-slate-300 mb-5" data-i18n="qr_hint"></p>
+
+      <label class="block text-sm text-slate-300 mb-1" data-i18n="qr_field"></label>
+      <input id="code" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 mb-3 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <button id="loginBtn" class="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-500 disabled:opacity-50" data-i18n="login_btn"></button>
+
+      <p id="msg" class="text-sm mt-3"></p>
+
+      <div class="mt-4 text-sm text-center">
+        <a href="index.html" class="text-indigo-300 hover:underline" data-i18n="goto_login"></a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  const params = new URLSearchParams(location.search);
+  const uid = params.get('uid');
+  const code = params.get('code') || '';
+  const codeEl = document.getElementById('code');
+  const msg = document.getElementById('msg');
+  codeEl.value = code; // auto-fill from the QR link
+
+  async function doLogin() {
+    const btn = document.getElementById('loginBtn');
+    if (!uid) { msg.className = 'text-sm mt-3 text-amber-400'; msg.textContent = t('qr_missing'); return; }
+    btn.disabled = true;
+    try {
+      const { user, token } = await api('qr-login', { user_id: Number(uid), code: codeEl.value });
+      setSession(user, token);
+      location.href = user.role === 'admin' ? 'admin.html' : user.role === 'master' ? 'master.html' : 'user.html';
+    } catch (err) {
+      msg.className = 'text-sm mt-3 text-red-400';
+      msg.textContent = err.message;
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  // Auto-login when opened from a QR link (uid + code present).
+  if (uid && code) doLogin();
+</script>

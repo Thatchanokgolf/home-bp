@@ -18,9 +18,10 @@ async function api(path, body) {
     data = await res.json();
   } catch {}
   // Expired / invalid session -> clear and bounce to login.
+  // Pre-login pages (login, qr-login) handle their own 401s instead of redirecting.
   if (res.status === 401) {
     clearSession();
-    if (!/index\.html$|\/$/.test(location.pathname)) location.href = 'index.html';
+    if (!/index\.html$|qr-login\.html$|\/$/.test(location.pathname)) location.href = 'index.html';
     throw new Error(data.error || 'Session expired, please log in again');
   }
   if (!res.ok) throw new Error(data.error || t('err_generic'));

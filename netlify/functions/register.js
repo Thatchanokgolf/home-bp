@@ -1,7 +1,17 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { sql, ok, bad, parse } = require('./_db');
 
 const HOSPITALS = ['Siriraj Hospital', 'Srinagarind Hospital'];
+
+// Random 20-letter code for QR login. Only its bcrypt hash is stored.
+function genCode(n = 20) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const bytes = crypto.randomBytes(n);
+  let s = '';
+  for (let i = 0; i < n; i++) s += chars[bytes[i] % chars.length];
+  return s;
+}
 
 // POST /api/register
 // body: { email, hospital?, hospital_id?, username?, first_name?, last_name?,
@@ -54,10 +64,12 @@ exports.handler = async (event) => {
     return bad('This username is already taken');
 
   const hash = await bcrypt.hash(password, 10);
+  const qrCode = genCode(20);
+  const qrHash = await bcrypt.hash(qrCode, 10);
   const rows = await sql`
-    INSERT INTO users (email, hospital, hospital_id, username, first_name, last_name, role, password, shared)
+    INSERT INTO users (email, hospital, hospital_id, username, first_name, last_name, role, password, shared, hash_password)
     VALUES (${email || null}, ${hospital || null}, ${hospital_id || null}, ${username || null},
-            ${first_name || null}, ${last_name || null}, 'user', ${hash}, ${shared})
+            ${first_name || null}, ${last_name || null}, 'user', ${hash}, ${shared}, ${qrHash})
     RETURNING id, email, hospital, hospital_id, username, first_name, last_name, role, shared`;
   let user = rows[0];
 
@@ -73,5 +85,6 @@ exports.handler = async (event) => {
     }
   }
 
-  return ok({ user });
+  // qr_code (plaintext, shown once) lets the client render the QR login code.
+  return ok({ user, qr_code: qrCode });
 };
