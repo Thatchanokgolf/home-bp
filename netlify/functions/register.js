@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sql, ok, bad, parse } = require('./_db');
+const { sendMail } = require('./_mail');
 
 const HOSPITALS = ['Siriraj Hospital', 'Srinagarind Hospital'];
 
@@ -49,10 +50,12 @@ exports.handler = async (event) => {
     if (hospital_id.length < 4) return bad('Hospital ID must be at least 4 characters');
   }
 
-  // Username: must contain a letter, must not contain '@'
+  // Username: must contain a letter, must not contain '@',
+  // and must not start with 'user' (reserved for auto-generated usernames).
   if (username) {
     if (username.includes('@')) return bad('Username cannot contain "@"');
     if (!/[A-Za-z]/.test(username)) return bad('Username must contain at least one letter');
+    if (/^user/i.test(username)) return bad("Username cannot begin with 'user' (reserved)");
   }
 
   // Duplicate checks (case-insensitive, specific messages)
@@ -85,6 +88,38 @@ exports.handler = async (event) => {
     }
   }
 
+  // Optional confirmation e-mail (only if an e-mail was given and SMTP is set up).
+  let email_sent = false;
+  if (email) {
+    const origin = String(b.origin || '').replace(/\/+$/, '');
+    const qrUrl = origin
+      ? `${origin}/qr-login.html?uid=${user.id}&code=${encodeURIComponent(qrCode)}`
+      : '';
+    const lines = [
+      'Home Blood Pressure — Registration confirmation',
+      '',
+      `ID: ${user.id}`,
+      `Username: ${user.username}`,
+      user.hospital ? `Hospital: ${user.hospital}` : null,
+      user.hospital_id ? `HN: ${user.hospital_id}` : null,
+      `Password: ${password}`,
+      qrUrl ? '' : null,
+      qrUrl ? `Log in with your QR link: ${qrUrl}` : null,
+      '',
+      'Please keep this e-mail for your records.',
+    ].filter((l) => l !== null);
+    try {
+      const r = await sendMail({
+        to: email,
+        subject: 'Home BP — Registration confirmation',
+        text: lines.join('\n'),
+      });
+      email_sent = r.sent;
+    } catch (e) {
+      email_sent = false; // never fail registration because of e-mail
+    }
+  }
+
   // qr_code (plaintext, shown once) lets the client render the QR login code.
-  return ok({ user, qr_code: qrCode });
+  return ok({ user, qr_code: qrCode, email_sent });
 };

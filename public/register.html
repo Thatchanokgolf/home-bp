@@ -45,9 +45,9 @@
             <option value="Srinagarind Hospital" data-i18n="srinagarind"></option>
           </select>
         </div>
-        <div>
+        <div id="hnField" class="hidden">
           <label class="block text-sm text-slate-600 mb-1" data-i18n="hn_label"></label>
-          <input id="hospital_id" disabled class="w-full border rounded-lg px-3 py-2 disabled:bg-slate-100 disabled:text-slate-400" />
+          <input id="hospital_id" class="w-full border rounded-lg px-3 py-2" />
           <p class="text-xs text-slate-400 mt-1" data-i18n="hn_help"></p>
         </div>
         <div>
@@ -69,6 +69,7 @@
 
       <div id="result" class="hidden mt-5 border-t pt-4">
         <p class="text-green-600 font-medium mb-2" data-i18n="reg_success"></p>
+        <p id="emailNote" class="hidden text-sm text-green-700 mb-2"></p>
         <ul id="resultList" class="text-sm text-slate-700 space-y-1"></ul>
         <div id="qrBox" class="mt-4 flex flex-col items-center"></div>
         <p class="mt-3 text-sm font-medium text-amber-600" data-i18n="screenshot_prompt"></p>
@@ -93,10 +94,15 @@
 
   const hospitalEl = document.getElementById('hospital');
   const hnEl = document.getElementById('hospital_id');
-  // Hospital ID is only fillable once a hospital is selected.
+  const hnField = document.getElementById('hnField');
+  // Hospital ID field is hidden until a hospital is selected.
   hospitalEl.addEventListener('change', () => {
-    if (hospitalEl.value) { hnEl.disabled = false; }
-    else { hnEl.disabled = true; hnEl.value = ''; }
+    if (hospitalEl.value) {
+      hnField.classList.remove('hidden');
+    } else {
+      hnField.classList.add('hidden');
+      hnEl.value = '';
+    }
   });
 
   function validate(v) {
@@ -104,6 +110,7 @@
     if (v.username) {
       if (v.username.includes('@')) return t('v_username_at');
       if (!/[A-Za-z]/.test(v.username)) return t('v_username_letter');
+      if (/^user/i.test(v.username)) return t('v_username_reserved');
     }
     if (v.hospital_id) {
       if (!v.hospital) return t('v_hn_needhosp');
@@ -128,13 +135,19 @@
       password: document.getElementById('password').value,
       password2: document.getElementById('password2').value,
       shared: document.querySelector('input[name="shared"]:checked').value,
+      origin: location.origin, // used to build the QR link in the confirmation e-mail
     };
     const err = validate(v);
     if (err) { alert(err); return; }
 
     btn.disabled = true; // block double-clicks while awaiting
     try {
-      const { user, qr_code } = await api('register', v);
+      const { user, qr_code, email_sent } = await api('register', v);
+      if (email_sent) {
+        const n = document.getElementById('emailNote');
+        n.textContent = t('email_sent_note');
+        n.classList.remove('hidden');
+      }
       const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
       // Email + Username always; Hospital / HN / First / Last only when present.

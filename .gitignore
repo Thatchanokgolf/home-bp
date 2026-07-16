@@ -2,3 +2,6 @@ node_modules/
 .env
 .netlify/
 *.log
+
+# netlify CLI artifact
+deno.lock
