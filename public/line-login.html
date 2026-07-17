@@ -50,10 +50,9 @@
         setSession(r.user, r.token);
         location.href = r.user.role === 'admin' ? 'admin.html' : r.user.role === 'master' ? 'master.html' : 'user.html';
       } else {
-        // Not linked yet -> carry the LINE token to the register page to link there.
+        // Not linked yet -> register first, then link on the completion screen.
         setMsg('line_not_linked', 'text-amber-400');
-        sessionStorage.setItem('hbp_line_token', idToken);
-        setTimeout(() => { location.href = 'register.html?line=1'; }, 1200);
+        setTimeout(() => { location.href = 'register.html'; }, 1200);
       }
     } catch (e) {
       msg.className = 'text-sm text-red-400';

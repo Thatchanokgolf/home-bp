@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { sql, ok, bad, parse } = require('./_db');
 const { sendMail } = require('./_mail');
 const { verifyLineToken } = require('./_line');
+const { signToken } = require('./_auth');
 
 const HOSPITALS = ['Siriraj Hospital', 'Srinagarind Hospital'];
 
@@ -135,5 +136,6 @@ exports.handler = async (event) => {
   }
 
   // qr_code (plaintext, shown once) lets the client render the QR login code.
-  return ok({ user, qr_code: qrCode, email_sent });
+  // token lets the completion screen link a LINE account / continue logged in.
+  return ok({ user, qr_code: qrCode, email_sent, token: signToken(user) });
 };
