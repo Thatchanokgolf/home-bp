@@ -269,6 +269,46 @@ const HomeBPReview = (() => {
     let avgRows = [];
     let currentTab = 'all';
     let timeframe = 'ampm';
+    let allRows = [];
+    let allSortDesc = true; // newest first by default
+    let allPage = 0;
+    const PAGE_SIZE = 50;
+
+    // Renders the "All BP Reading" tab with sorting + 50-per-page pagination.
+    function renderAllPane() {
+      if (!allRows.length) { $('.js-pane-all').innerHTML = tableAll([]); return; }
+      const sorted = [...allRows].sort((a, b) => {
+        const ka = `${a.date}T${a.time}`, kb = `${b.date}T${b.time}`;
+        if (ka === kb) return 0;
+        const cmp = ka < kb ? -1 : 1;
+        return allSortDesc ? -cmp : cmp;
+      });
+      const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+      if (allPage >= totalPages) allPage = totalPages - 1;
+      if (allPage < 0) allPage = 0;
+      const pageRows = sorted.slice(allPage * PAGE_SIZE, allPage * PAGE_SIZE + PAGE_SIZE);
+
+      const controls = `<div class="flex items-center justify-between gap-2 mb-3">
+        <span class="text-xs text-slate-500">${sorted.length} ${t('records')}</span>
+        <button class="js-sort text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">${allSortDesc ? t('sort_newest') : t('sort_oldest')}</button>
+      </div>`;
+      const pager = sorted.length > PAGE_SIZE ? `
+        <div class="flex items-center justify-center gap-3 mt-4">
+          <button class="js-all-prev border rounded-lg px-3 py-1 hover:bg-slate-50 disabled:opacity-40" ${allPage === 0 ? 'disabled' : ''}>${t('prev')}</button>
+          <span class="text-sm text-slate-500">${t('page')} ${allPage + 1} / ${totalPages}</span>
+          <button class="js-all-next border rounded-lg px-3 py-1 hover:bg-slate-50 disabled:opacity-40" ${allPage >= totalPages - 1 ? 'disabled' : ''}>${t('next')}</button>
+        </div>` : '';
+
+      $('.js-pane-all').innerHTML = controls + tableAll(pageRows) + pager;
+
+      const sortBtn = $('.js-sort');
+      if (sortBtn) sortBtn.addEventListener('click', () => { allSortDesc = !allSortDesc; allPage = 0; renderAllPane(); });
+      const prevBtn = $('.js-all-prev');
+      if (prevBtn) prevBtn.addEventListener('click', () => { allPage = Math.max(0, allPage - 1); renderAllPane(); });
+      const nextBtn = $('.js-all-next');
+      if (nextBtn) nextBtn.addEventListener('click', () => { allPage += 1; renderAllPane(); });
+      wireDelete();
+    }
 
     function drawGraph() {
       drawCharts($('.js-canvas-bp'), $('.js-canvas-hr'), aggregate(avgRows, timeframe));
@@ -335,11 +375,12 @@ const HomeBPReview = (() => {
           api('avg-list', { user_id: userId, from: from.value, to: to.value }),
         ]);
         avgRows = avg.rows;
+        allRows = all.rows;
+        allPage = 0; // fresh data -> back to first page (sort order is preserved)
         $('.js-summary').innerHTML = summaryCards(avg.summary);
-        $('.js-pane-all').innerHTML = tableAll(all.rows, true);
         $('.js-pane-avg').innerHTML = tableAvg(avg.rows);
         applyI18n();
-        wireDelete();
+        renderAllPane();
         activate(currentTab);
       } catch (e) {
         alert(e.message);
