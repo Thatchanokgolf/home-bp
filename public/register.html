@@ -85,6 +85,12 @@
       <div id="loginLink" class="mt-4 text-sm">
         <a href="index.html" class="text-indigo-600 hover:underline" data-i18n="goto_login"></a>
       </div>
+
+      <div id="lineDone" class="hidden mt-2 text-center">
+        <p id="lineDoneMsg"></p>
+        <button id="lineContinue" type="button" class="bg-indigo-600 text-white rounded-lg px-5 py-2 hover:bg-indigo-700" data-i18n="line_continue"></button>
+        <div class="mt-3"><a href="index.html" class="text-indigo-600 hover:underline" data-i18n="goto_login"></a></div>
+      </div>
     </div>
   </main>
 </div>
@@ -116,18 +122,31 @@
     location.href = u.role === 'admin' ? 'admin.html' : u.role === 'master' ? 'master.html' : 'user.html';
   }
 
-  // Returning from a LINE redirect started on the completion screen: finish linking + go in.
+  // Returning from a LINE redirect started on the completion screen: finish linking,
+  // then show a clear confirmation (no forced redirect).
   (async () => {
     const pending = sessionStorage.getItem('hbp_line_postreg');
     if (!pending) return;
     sessionStorage.removeItem('hbp_line_postreg');
+    const { user, token } = JSON.parse(pending);
+    setSession(user, token);
+    document.getElementById('regForm').classList.add('hidden');
+    document.getElementById('loginLink').classList.add('hidden');
+    const done = document.getElementById('lineDone');
+    const dmsg = document.getElementById('lineDoneMsg');
+    done.classList.remove('hidden');
+    document.getElementById('lineContinue').addEventListener('click', () => gotoHome(user));
+    applyI18n();
     try {
-      const { user, token } = JSON.parse(pending);
-      setSession(user, token);
       await liff.init({ liffId: LIFF_ID });
-      if (liff.isLoggedIn()) await api('line-link', { id_token: liff.getIDToken() });
-      gotoHome(user);
-    } catch (e) { /* fall through to the normal register page */ }
+      if (!liff.isLoggedIn() || !liff.getIDToken()) throw new Error('LINE login was not completed');
+      await api('line-link', { id_token: liff.getIDToken() });
+      dmsg.className = 'text-green-600 font-medium mb-4';
+      dmsg.textContent = t('line_link_success');
+    } catch (e) {
+      dmsg.className = 'text-red-600 mb-4';
+      dmsg.textContent = t('line_error') + ': ' + (e.message || e);
+    }
   })();
 
   // Called from the completion screen's "Link LINE account" button.
@@ -135,17 +154,24 @@
     const btn = document.getElementById('lineLinkBtn2');
     const msg = document.getElementById('lineMsg2');
     btn.disabled = true;
+    msg.classList.add('hidden');
     setSession(regUser, regToken); // authenticate as the just-created account
     try {
       await liff.init({ liffId: LIFF_ID });
-      if (liff.isLoggedIn()) {
-        await api('line-link', { id_token: liff.getIDToken() });
-        gotoHome(regUser); // linked + logged in -> go into the app
-      } else {
+      if (!liff.isLoggedIn()) {
         // Needs LINE authorization -> redirect; we resume + link on return.
         sessionStorage.setItem('hbp_line_postreg', JSON.stringify({ user: regUser, token: regToken }));
         liff.login({ redirectUri: location.href });
+        return;
       }
+      const idt = liff.getIDToken();
+      if (!idt) throw new Error('no LINE ID token (enable the "openid" scope on the LINE channel)');
+      await api('line-link', { id_token: idt });
+      // Linked — stay on this screen so the details / QR stay visible.
+      msg.className = 'text-sm mt-2 text-green-600 font-medium';
+      msg.textContent = t('line_link_success');
+      msg.classList.remove('hidden');
+      btn.classList.add('hidden');
     } catch (e) {
       msg.className = 'text-sm mt-2 text-red-600';
       msg.textContent = t('line_error') + ': ' + (e.message || e);
