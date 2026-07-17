@@ -1,0 +1,64 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — LINE Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  .hbp-bg {
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,0.28), transparent 60%),
+      radial-gradient(900px 500px at 110% 20%, rgba(6,182,212,0.20), transparent 55%),
+      linear-gradient(160deg, #05060a 0%, #0b1020 55%, #05060a 100%);
+  }
+  .hbp-card { background: rgba(17,20,32,0.72); backdrop-filter: blur(10px); }
+</style>
+<div class="min-h-screen hbp-bg flex flex-col text-slate-100">
+  <header class="flex items-center justify-between px-5 py-3">
+    <h1 class="font-semibold text-lg tracking-tight text-white" data-i18n="app_title_monitor"></h1>
+    <button id="langToggle" onclick="toggleLang()" class="text-sm border border-white/20 rounded-lg px-3 py-1 hover:bg-white/10"></button>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm hbp-card rounded-2xl shadow-2xl border border-white/10 p-6 text-center">
+      <h2 class="text-xl font-semibold mb-4" data-i18n="line_login_title"></h2>
+      <p id="msg" class="text-sm text-slate-300" data-i18n="line_connecting"></p>
+      <div class="mt-5">
+        <a href="index.html" class="text-sm text-indigo-300 hover:underline" data-i18n="goto_login"></a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const LIFF_ID = '2010745308-dTpWiHuY';
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+  const msg = document.getElementById('msg');
+  const setMsg = (key, cls) => { msg.className = 'text-sm ' + (cls || 'text-slate-300'); msg.removeAttribute('data-i18n'); msg.textContent = t(key); };
+
+  (async () => {
+    try {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) { liff.login(); return; } // redirects to LINE, returns here
+      const idToken = liff.getIDToken();
+      if (!idToken) { setMsg('line_error', 'text-red-400'); return; }
+
+      const r = await api('line-login', { id_token: idToken });
+      if (r.linked) {
+        setSession(r.user, r.token);
+        location.href = r.user.role === 'admin' ? 'admin.html' : r.user.role === 'master' ? 'master.html' : 'user.html';
+      } else {
+        // Not linked yet -> carry the LINE token to the register page to link there.
+        setMsg('line_not_linked', 'text-amber-400');
+        sessionStorage.setItem('hbp_line_token', idToken);
+        setTimeout(() => { location.href = 'register.html?line=1'; }, 1200);
+      }
+    } catch (e) {
+      msg.className = 'text-sm text-red-400';
+      msg.removeAttribute('data-i18n');
+      msg.textContent = (t('line_error') + ': ' + (e.message || e));
+    }
+  })();
+</script>

@@ -2,6 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Home BP — Settings</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <div class="min-h-screen bg-slate-100 flex flex-col">
   <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
     <h1 class="font-semibold text-indigo-700" data-i18n="app_title_manage"></h1>
@@ -51,6 +52,14 @@
       </div>
       <button id="shareBtn" class="bg-indigo-600 text-white rounded-lg px-5 py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="save"></button>
       <p id="shareMsg" class="text-sm text-green-600 hidden mt-2" data-i18n="shared_saved"></p>
+    </div>
+
+    <!-- LINE account -->
+    <div class="bg-white rounded-2xl shadow p-6">
+      <h3 class="font-semibold mb-2 text-slate-700" data-i18n="line_link_title"></h3>
+      <p id="lineState" class="text-sm mb-4"></p>
+      <button id="lineLinkBtn" class="text-white rounded-lg px-5 py-2 font-medium hover:brightness-110 disabled:opacity-50" style="background:#06C755" data-i18n="line_link_btn"></button>
+      <p id="lineMsg" class="text-sm hidden mt-2"></p>
     </div>
   </main>
 </div>
@@ -107,6 +116,56 @@
         setTimeout(() => m.classList.add('hidden'), 2500);
       } catch (err) { alert(err.message); }
       finally { btn.disabled = false; }
+    });
+
+    // ---- LINE account linking ----
+    const LIFF_ID = '2010745308-dTpWiHuY';
+    const lineState = document.getElementById('lineState');
+    const lineBtn = document.getElementById('lineLinkBtn');
+    function renderLineState() {
+      const linked = !!user.line_linked;
+      lineState.textContent = linked ? t('line_linked_yes') : t('line_linked_no');
+      lineState.className = 'text-sm mb-4 ' + (linked ? 'text-green-600' : 'text-slate-500');
+      lineBtn.classList.toggle('hidden', linked);
+    }
+    renderLineState();
+    window.onLangChange = () => {
+      const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright');
+      renderLineState();
+    };
+
+    async function completeLineLink(idToken) {
+      lineBtn.disabled = true;
+      const m = document.getElementById('lineMsg');
+      try {
+        await api('line-link', { id_token: idToken });
+        user.line_linked = true;
+        setSession(user, getToken());
+        renderLineState();
+        m.className = 'text-sm text-green-600 mt-2'; m.textContent = t('line_link_success'); m.classList.remove('hidden');
+      } catch (err) {
+        m.className = 'text-sm text-red-600 mt-2'; m.textContent = err.message; m.classList.remove('hidden');
+      } finally { lineBtn.disabled = false; }
+    }
+
+    // Returning from a LINE redirect started here.
+    (async () => {
+      if (sessionStorage.getItem('hbp_line_settings_intent')) {
+        sessionStorage.removeItem('hbp_line_settings_intent');
+        try { await liff.init({ liffId: LIFF_ID }); if (liff.isLoggedIn()) await completeLineLink(liff.getIDToken()); } catch {}
+      }
+    })();
+
+    lineBtn.addEventListener('click', async () => {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isLoggedIn()) {
+          await completeLineLink(liff.getIDToken());
+        } else {
+          sessionStorage.setItem('hbp_line_settings_intent', '1');
+          liff.login({ redirectUri: location.href });
+        }
+      } catch (e) { alert(t('line_error') + ': ' + (e.message || e)); }
     });
   }
 </script>

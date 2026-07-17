@@ -14,8 +14,10 @@ CREATE TABLE IF NOT EXISTS users (
   role          TEXT    NOT NULL DEFAULT 'user',   -- 'user' | 'admin' | 'master'
   password      TEXT    NOT NULL,        -- bcrypt hash
   shared        BOOLEAN NOT NULL DEFAULT true,      -- shared to doctor yes/no
-  hash_password TEXT                     -- bcrypt hash of the 20-letter QR login code
+  hash_password TEXT,                    -- bcrypt hash of the 20-letter QR login code
+  line_user_id  TEXT                     -- linked LINE user id (for LINE login)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_line ON users (line_user_id);
 -- Uniqueness (Postgres allows multiple NULLs, so optional fields stay optional).
 -- E-mail and username are case-insensitive (indexed on LOWER()).
 CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email       ON users (LOWER(email));

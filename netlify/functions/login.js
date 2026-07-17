@@ -33,6 +33,7 @@ exports.handler = async (event) => {
     last_name: user.last_name,
     role: user.role,
     shared: user.shared,
+    line_linked: !!user.line_user_id,
   };
 
   return ok({ user: safeUser, token: signToken(safeUser) });

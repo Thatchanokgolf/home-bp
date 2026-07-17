@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sql, ok, bad, parse } = require('./_db');
 const { sendMail } = require('./_mail');
+const { verifyLineToken } = require('./_line');
 
 const HOSPITALS = ['Siriraj Hospital', 'Srinagarind Hospital'];
 
@@ -66,13 +67,26 @@ exports.handler = async (event) => {
   if (username && (await sql`SELECT 1 FROM users WHERE LOWER(username) = LOWER(${username})`).length)
     return bad('This username is already taken');
 
+  // Optional: link a LINE account (verify the LIFF ID token, ensure it's unused).
+  let lineSub = null;
+  if (b.line_id_token) {
+    try {
+      const line = await verifyLineToken(b.line_id_token);
+      lineSub = line.sub;
+    } catch (e) {
+      return bad('LINE verification failed: ' + e.message, 400);
+    }
+    if ((await sql`SELECT 1 FROM users WHERE line_user_id = ${lineSub}`).length)
+      return bad('This LINE account is already linked to another account', 409);
+  }
+
   const hash = await bcrypt.hash(password, 10);
   const qrCode = genCode(20);
   const qrHash = await bcrypt.hash(qrCode, 10);
   const rows = await sql`
-    INSERT INTO users (email, hospital, hospital_id, username, first_name, last_name, role, password, shared, hash_password)
+    INSERT INTO users (email, hospital, hospital_id, username, first_name, last_name, role, password, shared, hash_password, line_user_id)
     VALUES (${email || null}, ${hospital || null}, ${hospital_id || null}, ${username || null},
-            ${first_name || null}, ${last_name || null}, 'user', ${hash}, ${shared}, ${qrHash})
+            ${first_name || null}, ${last_name || null}, 'user', ${hash}, ${shared}, ${qrHash}, ${lineSub})
     RETURNING id, email, hospital, hospital_id, username, first_name, last_name, role, shared`;
   let user = rows[0];
 

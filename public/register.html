@@ -3,6 +3,7 @@
 <title>Home BP — Register</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   @media print {
     header, #hbpFooter, #printBtn, #pwToggle { display: none !important; }
@@ -64,6 +65,10 @@
           <label class="mr-4"><input type="radio" name="shared" value="yes" checked /> <span data-i18n="yes"></span></label>
           <label><input type="radio" name="shared" value="no" /> <span data-i18n="no"></span></label>
         </div>
+        <div>
+          <button type="button" id="lineLinkBtn" class="w-full text-white rounded-lg py-2 font-medium hover:brightness-110" style="background:#06C755" data-i18n="line_link_btn"></button>
+          <p id="lineNote" class="hidden text-sm text-green-600 mt-1" data-i18n="line_linked_pending"></p>
+        </div>
         <button id="submitBtn" class="w-full bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed" data-i18n="submit"></button>
       </form>
 
@@ -105,6 +110,58 @@
     }
   });
 
+  // ---- LINE account linking ----
+  const LIFF_ID = '2010745308-dTpWiHuY';
+  const FORM_KEY = 'hbp_reg_form';
+  let lineToken = null;
+  const lineFields = ['email', 'username', 'first_name', 'last_name', 'hospital', 'hospital_id', 'password', 'password2'];
+
+  function collectForm() {
+    const o = {};
+    lineFields.forEach((id) => (o[id] = document.getElementById(id).value));
+    o.shared = document.querySelector('input[name="shared"]:checked').value;
+    return o;
+  }
+  function restoreForm(o) {
+    lineFields.forEach((id) => { if (o[id] != null) document.getElementById(id).value = o[id]; });
+    if (o.hospital) document.getElementById('hnField').classList.remove('hidden');
+    if (o.shared) { const r = document.querySelector(`input[name="shared"][value="${o.shared}"]`); if (r) r.checked = true; }
+  }
+  function markLinePending() {
+    if (!lineToken) return;
+    document.getElementById('lineNote').classList.remove('hidden');
+    document.getElementById('lineLinkBtn').classList.add('hidden');
+  }
+  const ensureLiff = () => liff.init({ liffId: LIFF_ID });
+
+  // On load: token carried from the LINE-login page, or returning from a LINE redirect mid-registration.
+  (async () => {
+    const carried = sessionStorage.getItem('hbp_line_token');
+    if (carried) { lineToken = carried; markLinePending(); }
+    if (sessionStorage.getItem('hbp_line_intent')) {
+      const saved = sessionStorage.getItem(FORM_KEY);
+      if (saved) { try { restoreForm(JSON.parse(saved)); } catch {} }
+      try { await ensureLiff(); if (liff.isLoggedIn()) { lineToken = liff.getIDToken(); markLinePending(); } } catch {}
+      sessionStorage.removeItem('hbp_line_intent');
+      sessionStorage.removeItem(FORM_KEY);
+    }
+  })();
+
+  document.getElementById('lineLinkBtn').addEventListener('click', async () => {
+    try {
+      await ensureLiff();
+      if (liff.isLoggedIn()) {
+        lineToken = liff.getIDToken();
+        markLinePending();
+      } else {
+        // Save the form, then redirect to LINE; we restore + capture the token on return.
+        sessionStorage.setItem(FORM_KEY, JSON.stringify(collectForm()));
+        sessionStorage.setItem('hbp_line_intent', '1');
+        liff.login({ redirectUri: location.href });
+      }
+    } catch (e) { alert(t('line_error') + ': ' + (e.message || e)); }
+  });
+
   function validate(v) {
     if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return t('v_email_bad');
     if (v.username) {
@@ -136,6 +193,7 @@
       password2: document.getElementById('password2').value,
       shared: document.querySelector('input[name="shared"]:checked').value,
       origin: location.origin, // used to build the QR link in the confirmation e-mail
+      line_id_token: lineToken || undefined, // link LINE account if present
     };
     const err = validate(v);
     if (err) { alert(err); return; }
@@ -143,6 +201,7 @@
     btn.disabled = true; // block double-clicks while awaiting
     try {
       const { user, qr_code, email_sent } = await api('register', v);
+      sessionStorage.removeItem('hbp_line_token'); // consumed
       if (email_sent) {
         const n = document.getElementById('emailNote');
         n.textContent = t('email_sent_note');
