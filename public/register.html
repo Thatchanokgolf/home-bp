@@ -139,8 +139,8 @@
     applyI18n();
     try {
       await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn() || !liff.getIDToken()) throw new Error('LINE login was not completed');
-      await api('line-link', { id_token: liff.getIDToken() });
+      if (!liff.isLoggedIn() || !liff.getAccessToken()) throw new Error('LINE login was not completed');
+      await api('line-link', { access_token: liff.getAccessToken() });
       dmsg.className = 'text-green-600 font-medium mb-4';
       dmsg.textContent = t('line_link_success');
     } catch (e) {
@@ -164,9 +164,9 @@
         liff.login({ redirectUri: location.href });
         return;
       }
-      const idt = liff.getIDToken();
-      if (!idt) throw new Error('no LINE ID token (enable the "openid" scope on the LINE channel)');
-      await api('line-link', { id_token: idt });
+      const at = liff.getAccessToken();
+      if (!at) throw new Error('LINE login was not completed');
+      await api('line-link', { access_token: at });
       // Linked — stay on this screen so the details / QR stay visible.
       msg.className = 'text-sm mt-2 text-green-600 font-medium';
       msg.textContent = t('line_link_success');

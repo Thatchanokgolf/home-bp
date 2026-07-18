@@ -134,11 +134,11 @@
       renderLineState();
     };
 
-    async function completeLineLink(idToken) {
+    async function completeLineLink(accessToken) {
       lineBtn.disabled = true;
       const m = document.getElementById('lineMsg');
       try {
-        await api('line-link', { id_token: idToken });
+        await api('line-link', { access_token: accessToken });
         user.line_linked = true;
         setSession(user, getToken());
         renderLineState();
@@ -152,7 +152,7 @@
     (async () => {
       if (sessionStorage.getItem('hbp_line_settings_intent')) {
         sessionStorage.removeItem('hbp_line_settings_intent');
-        try { await liff.init({ liffId: LIFF_ID }); if (liff.isLoggedIn()) await completeLineLink(liff.getIDToken()); } catch {}
+        try { await liff.init({ liffId: LIFF_ID }); if (liff.isLoggedIn()) await completeLineLink(liff.getAccessToken()); } catch {}
       }
     })();
 
@@ -160,7 +160,7 @@
       try {
         await liff.init({ liffId: LIFF_ID });
         if (liff.isLoggedIn()) {
-          await completeLineLink(liff.getIDToken());
+          await completeLineLink(liff.getAccessToken());
         } else {
           sessionStorage.setItem('hbp_line_settings_intent', '1');
           liff.login({ redirectUri: location.href });

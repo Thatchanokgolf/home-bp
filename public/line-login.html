@@ -42,10 +42,12 @@
     try {
       await liff.init({ liffId: LIFF_ID });
       if (!liff.isLoggedIn()) { liff.login(); return; } // redirects to LINE, returns here
-      const idToken = liff.getIDToken();
-      if (!idToken) { setMsg('line_error', 'text-red-400'); return; }
+      // Use the access token (LIFF keeps it fresh) rather than the ID token,
+      // which LIFF caches without refreshing and is often expired on return.
+      const accessToken = liff.getAccessToken();
+      if (!accessToken) { setMsg('line_error', 'text-red-400'); return; }
 
-      const r = await api('line-login', { id_token: idToken });
+      const r = await api('line-login', { access_token: accessToken });
       if (r.linked) {
         setSession(r.user, r.token);
         location.href = r.user.role === 'admin' ? 'admin.html' : r.user.role === 'master' ? 'master.html' : 'user.html';

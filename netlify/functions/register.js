@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sql, ok, bad, parse } = require('./_db');
 const { sendMail } = require('./_mail');
-const { verifyLineToken } = require('./_line');
+const { verifyLineCredential } = require('./_line');
 const { signToken } = require('./_auth');
 
 const HOSPITALS = ['Siriraj Hospital', 'Srinagarind Hospital'];
@@ -68,11 +68,14 @@ exports.handler = async (event) => {
   if (username && (await sql`SELECT 1 FROM users WHERE LOWER(username) = LOWER(${username})`).length)
     return bad('This username is already taken');
 
-  // Optional: link a LINE account (verify the LIFF ID token, ensure it's unused).
+  // Optional: link a LINE account (verify the LIFF token, ensure it's unused).
   let lineSub = null;
-  if (b.line_id_token) {
+  if (b.line_access_token || b.line_id_token) {
     try {
-      const line = await verifyLineToken(b.line_id_token);
+      const line = await verifyLineCredential({
+        access_token: b.line_access_token,
+        id_token: b.line_id_token,
+      });
       lineSub = line.sub;
     } catch (e) {
       return bad('LINE verification failed: ' + e.message, 400);

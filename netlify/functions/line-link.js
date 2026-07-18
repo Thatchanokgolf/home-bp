@@ -1,20 +1,20 @@
 const { sql, ok, bad, parse } = require('./_db');
 const { verify } = require('./_auth');
-const { verifyLineToken } = require('./_line');
+const { verifyLineCredential } = require('./_line');
 
-// POST /api/line-link  body: { id_token }
+// POST /api/line-link  body: { access_token | id_token }
 // Links the caller's (authenticated) account to their LINE account.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
   const auth = verify(event);
   if (!auth) return bad('Unauthorized', 401);
 
-  const { id_token } = parse(event);
-  if (!id_token) return bad('Missing LINE token', 400);
+  const { access_token, id_token } = parse(event);
+  if (!access_token && !id_token) return bad('Missing LINE token', 400);
 
   let line;
   try {
-    line = await verifyLineToken(id_token);
+    line = await verifyLineCredential({ access_token, id_token });
   } catch (e) {
     return bad('LINE verification failed: ' + e.message, 401);
   }
