@@ -2,6 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Home BP — Login</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 <style>
   .hbp-bg {
     background:
@@ -33,6 +34,11 @@
         <a href="line-login.html" class="block text-sm text-white rounded-lg px-4 py-2 text-center font-medium hover:brightness-110" style="background:#06C755" data-i18n="line_login_btn"></a>
       </div>
 
+      <div class="mt-6 pt-4 border-t border-white/10 flex flex-col items-center">
+        <div id="siteQr" class="bg-white p-2 rounded-lg"></div>
+        <p class="text-xs text-slate-400 mt-2 text-center" data-i18n="qr_site_caption"></p>
+      </div>
+
       <div id="forgotPanel" class="hidden mt-5 border-t border-white/10 pt-4">
         <p class="text-sm text-slate-300 mb-2" data-i18n="forgot_prompt"></p>
         <input id="forgotEmail" type="email" data-i18n-ph="email" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 mb-2 placeholder-slate-400" />
@@ -53,6 +59,14 @@
   if (existing) location.href = existing.role === 'admin' ? 'admin.html' : existing.role === 'master' ? 'master.html' : 'user.html';
   document.addEventListener('DOMContentLoaded', renderFooter);
   window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  // QR code linking to the login page, so it can be opened on a phone.
+  new QRCode(document.getElementById('siteQr'), {
+    text: 'https://homebp.netlify.app',
+    width: 132, height: 132,
+    colorDark: '#000000', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M,
+  });
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
