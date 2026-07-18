@@ -41,7 +41,13 @@
   (async () => {
     try {
       await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) { liff.login(); return; } // redirects to LINE, returns here
+      // Redirect back to a single canonical URL so exactly one value needs to be
+      // whitelisted as the LINE Login channel's Callback URL. Using location.href
+      // could vary (deploy-preview host, trailing slash) and trip a 400 on LINE.
+      if (!liff.isLoggedIn()) {
+        liff.login({ redirectUri: 'https://homebp.netlify.app/line-login.html' });
+        return; // redirects to LINE, returns here
+      }
       // Use the access token (LIFF keeps it fresh) rather than the ID token,
       // which LIFF caches without refreshing and is often expired on return.
       const accessToken = liff.getAccessToken();
