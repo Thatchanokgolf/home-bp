@@ -1,0 +1,186 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Privacy Policy</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .hbp-bg {
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,0.28), transparent 60%),
+      radial-gradient(900px 500px at 110% 20%, rgba(6,182,212,0.20), transparent 55%),
+      linear-gradient(160deg, #05060a 0%, #0b1020 55%, #05060a 100%);
+  }
+  .hbp-card { background: rgba(17,20,32,0.72); backdrop-filter: blur(10px); }
+  .doc h2 { font-weight: 600; color: #fff; margin-top: 1.75rem; margin-bottom: 0.5rem; font-size: 1.05rem; }
+  .doc p, .doc li { color: #cbd5e1; line-height: 1.75; }
+  .doc ul { list-style: disc; padding-left: 1.25rem; margin-top: 0.35rem; }
+  .doc li { margin-bottom: 0.3rem; }
+  .doc p { margin-top: 0.35rem; }
+</style>
+<div class="min-h-screen hbp-bg flex flex-col text-slate-100">
+  <header class="flex items-center justify-between px-5 py-3">
+    <h1 class="font-semibold text-lg tracking-tight text-white" data-i18n="app_title_monitor"></h1>
+    <div class="flex items-center gap-2">
+      <a href="index.html" class="text-sm border border-white/20 rounded-lg px-3 py-1 hover:bg-white/10" data-i18n="goto_login"></a>
+      <button id="langToggle" onclick="toggleLang()" class="text-sm border border-white/20 rounded-lg px-3 py-1 hover:bg-white/10"></button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6">
+    <div class="w-full max-w-3xl mx-auto hbp-card rounded-2xl shadow-2xl border border-white/10 p-6 md:p-8 doc">
+
+      <!-- ---------------- Thai ---------------- -->
+      <section id="docTh">
+        <h1 class="text-2xl font-semibold text-white mb-1">นโยบายความเป็นส่วนตัว</h1>
+        <p class="text-sm text-slate-400">ปรับปรุงล่าสุด: 20 กรกฎาคม 2569</p>
+
+        <p>ระบบติดตามความดันโลหิตที่บ้าน (“Home BP” หรือ “ระบบ”) จัดทำขึ้นเพื่อให้ผู้ใช้บันทึกค่าความดันโลหิตที่วัดเองที่บ้าน และแบ่งปันข้อมูลดังกล่าวกับบุคลากรทางการแพทย์ของโรงพยาบาลที่ท่านเลือก นโยบายนี้อธิบายว่าเราเก็บข้อมูลใดบ้าง ใช้ข้อมูลอย่างไร และใครสามารถเข้าถึงข้อมูลได้</p>
+
+        <h2>1. ข้อมูลที่เราเก็บรวบรวม</h2>
+        <p>เราเก็บเฉพาะข้อมูลที่ท่านกรอกเข้าสู่ระบบด้วยตนเอง ได้แก่</p>
+        <ul>
+          <li><strong>ข้อมูลบัญชี:</strong> ชื่อผู้ใช้ ชื่อ นามสกุล และอีเมล (ไม่บังคับ)</li>
+          <li><strong>ข้อมูลโรงพยาบาล:</strong> โรงพยาบาลที่ท่านเลือก และหมายเลขประจำตัวผู้ป่วย (HN) หากท่านกรอก</li>
+          <li><strong>รหัสผ่าน:</strong> จัดเก็บในรูปแบบที่เข้ารหัสแล้วเท่านั้น (bcrypt) เราไม่สามารถอ่านรหัสผ่านของท่านได้</li>
+          <li><strong>ค่าความดันโลหิต:</strong> ค่าตัวบน (systolic) ค่าตัวล่าง (diastolic) อัตราการเต้นของหัวใจ พร้อมวันที่ เวลา และช่วงเช้า/เย็น</li>
+          <li><strong>บัญชี LINE:</strong> หากท่านเลือกเชื่อมบัญชี LINE เราจะเก็บรหัสผู้ใช้ LINE (LINE user ID) ของท่านเพื่อใช้ยืนยันตัวตนในการเข้าสู่ระบบเท่านั้น</li>
+          <li><strong>การตั้งค่าการแบ่งปัน:</strong> ตัวเลือกว่าท่านยินยอมให้บุคลากรของโรงพยาบาลเห็นข้อมูลของท่านหรือไม่</li>
+        </ul>
+        <p>ระบบไม่ใช้คุกกี้เพื่อการติดตามหรือโฆษณา และไม่มีเครื่องมือวิเคราะห์ของบุคคลที่สาม</p>
+
+        <h2>2. วัตถุประสงค์ในการใช้ข้อมูล</h2>
+        <ul>
+          <li>เพื่อให้บริการบันทึก แสดงผล คำนวณค่าเฉลี่ย และแสดงกราฟค่าความดันโลหิตของท่าน</li>
+          <li>เพื่อยืนยันตัวตนและรักษาความปลอดภัยของบัญชีผู้ใช้</li>
+          <li>เพื่อส่งอีเมลยืนยันการลงทะเบียน และอีเมลตั้งรหัสผ่านใหม่เมื่อท่านร้องขอ</li>
+          <li>เพื่อให้บุคลากรทางการแพทย์ติดตามอาการของท่าน เฉพาะเมื่อท่านเปิดการแบ่งปันข้อมูล</li>
+        </ul>
+        <p>เรา<strong>ไม่</strong>ขาย ให้เช่า หรือใช้ข้อมูลของท่านเพื่อการโฆษณา</p>
+
+        <h2>3. ผู้ที่สามารถเข้าถึงข้อมูลของท่าน</h2>
+        <ul>
+          <li><strong>ตัวท่านเอง</strong> เข้าถึงข้อมูลทั้งหมดของท่านได้เสมอ</li>
+          <li><strong>บุคลากรของโรงพยาบาล</strong> เห็นข้อมูลของท่านได้เฉพาะเมื่อท่านตั้งค่าการแบ่งปันเป็น “ใช่” และเห็นได้เฉพาะผู้ป่วยในโรงพยาบาลเดียวกันเท่านั้น</li>
+          <li><strong>ผู้ดูแลระบบสูงสุด (Master)</strong> เข้าถึงข้อมูลบัญชีเพื่อการดูแลรักษาระบบ</li>
+        </ul>
+        <p>ท่านสามารถเปลี่ยนการตั้งค่าการแบ่งปันได้ตลอดเวลาที่หน้า “ตั้งค่า”</p>
+
+        <h2>4. การเชื่อมบัญชี LINE</h2>
+        <p>การเชื่อมบัญชี LINE เป็นทางเลือก ใช้เพื่อให้ท่านเข้าสู่ระบบได้สะดวกขึ้นเท่านั้น เราได้รับเพียงรหัสผู้ใช้ LINE และชื่อที่แสดงของท่าน เรา<strong>ไม่</strong>สามารถอ่านข้อความ รายชื่อเพื่อน หรือส่งข้อความในนามของท่านได้ ท่านสามารถยกเลิกการเชื่อมต่อได้โดยติดต่อเรา</p>
+
+        <h2>5. การจัดเก็บและความปลอดภัย</h2>
+        <p>ข้อมูลจัดเก็บในฐานข้อมูล PostgreSQL ที่ให้บริการโดย Neon และเว็บไซต์ให้บริการผ่าน Netlify การรับส่งข้อมูลทั้งหมดเข้ารหัสด้วย HTTPS รหัสผ่านถูกเข้ารหัสแบบทางเดียว และการเข้าสู่ระบบใช้โทเคนที่มีวันหมดอายุ</p>
+
+        <h2>6. ระยะเวลาการเก็บข้อมูล</h2>
+        <p>เราเก็บข้อมูลของท่านไว้ตราบเท่าที่บัญชียังใช้งานอยู่ ท่านสามารถลบค่าความดันโลหิตแต่ละรายการได้เองในหน้าทบทวนข้อมูล และขอให้ลบบัญชีพร้อมข้อมูลทั้งหมดได้โดยติดต่อเรา</p>
+
+        <h2>7. สิทธิของท่าน</h2>
+        <ul>
+          <li>ขอเข้าถึงหรือขอสำเนาข้อมูลของท่าน</li>
+          <li>ขอแก้ไขข้อมูลที่ไม่ถูกต้อง</li>
+          <li>ขอลบบัญชีและข้อมูลของท่าน</li>
+          <li>ถอนความยินยอมในการแบ่งปันข้อมูลกับโรงพยาบาลได้ทุกเมื่อ</li>
+        </ul>
+
+        <h2>8. ข้อจำกัดความรับผิดชอบทางการแพทย์</h2>
+        <p>ระบบนี้เป็นเพียงเครื่องมือบันทึกข้อมูล ไม่ใช่อุปกรณ์ทางการแพทย์ และไม่ใช่การวินิจฉัยหรือคำแนะนำทางการแพทย์ กรุณาปรึกษาแพทย์ของท่านเสมอก่อนตัดสินใจเกี่ยวกับการรักษา หากท่านมีอาการฉุกเฉิน กรุณาติดต่อหน่วยบริการฉุกเฉินทันที</p>
+
+        <h2>9. ผู้เยาว์</h2>
+        <p>ระบบนี้มีไว้สำหรับผู้ใหญ่ที่อยู่ในการดูแลของแพทย์ ผู้เยาว์ควรใช้งานภายใต้การดูแลของผู้ปกครองหรือบุคลากรทางการแพทย์</p>
+
+        <h2>10. การเปลี่ยนแปลงนโยบาย</h2>
+        <p>หากมีการแก้ไขนโยบายนี้ เราจะปรับวันที่ “ปรับปรุงล่าสุด” ด้านบน</p>
+
+        <h2>11. ติดต่อเรา</h2>
+        <p>หากมีคำถามเกี่ยวกับนโยบายนี้ หรือต้องการใช้สิทธิของท่าน กรุณาติดต่อ:<br />
+        <a class="text-indigo-300 hover:underline" href="mailto:thatchanokgolf@gmail.com">thatchanokgolf@gmail.com</a></p>
+      </section>
+
+      <!-- ---------------- English ---------------- -->
+      <section id="docEn" class="hidden">
+        <h1 class="text-2xl font-semibold text-white mb-1">Privacy Policy</h1>
+        <p class="text-sm text-slate-400">Last updated: 20 July 2026</p>
+
+        <p>The Home Blood Pressure Monitoring System (“Home BP”, “the service”) lets you record blood-pressure readings taken at home and, if you choose, share them with clinical staff at your hospital. This policy explains what we collect, how we use it, and who can see it.</p>
+
+        <h2>1. Information we collect</h2>
+        <p>We only collect information you enter yourself:</p>
+        <ul>
+          <li><strong>Account details:</strong> username, first and last name, and e-mail address (optional).</li>
+          <li><strong>Hospital details:</strong> the hospital you select and your hospital number (HN), if you provide one.</li>
+          <li><strong>Password:</strong> stored only in hashed form (bcrypt). We cannot read your password.</li>
+          <li><strong>Blood-pressure readings:</strong> systolic, diastolic and heart rate, with the date, time and morning/evening period.</li>
+          <li><strong>LINE account:</strong> if you choose to link LINE, we store your LINE user ID solely to identify you at sign-in.</li>
+          <li><strong>Sharing preference:</strong> whether you allow hospital staff to view your readings.</li>
+        </ul>
+        <p>We use no tracking or advertising cookies and no third-party analytics.</p>
+
+        <h2>2. How we use your information</h2>
+        <ul>
+          <li>To record your readings and show your averages, tables and graphs.</li>
+          <li>To authenticate you and keep your account secure.</li>
+          <li>To send a registration confirmation e-mail, and a new password if you use “Forgot my password”.</li>
+          <li>To let clinical staff follow your readings — only if you have enabled sharing.</li>
+        </ul>
+        <p>We do <strong>not</strong> sell or rent your data, or use it for advertising.</p>
+
+        <h2>3. Who can see your data</h2>
+        <ul>
+          <li><strong>You</strong> can always see all of your own data.</li>
+          <li><strong>Hospital staff</strong> can see your readings only if your sharing setting is “Yes”, and only for patients at the same hospital.</li>
+          <li><strong>The system administrator (Master)</strong> can access account records to maintain the service.</li>
+        </ul>
+        <p>You can change your sharing setting at any time on the Settings page.</p>
+
+        <h2>4. Linking a LINE account</h2>
+        <p>Linking LINE is optional and is used only to make signing in easier. We receive only your LINE user ID and display name. We <strong>cannot</strong> read your messages or contacts, and cannot send messages on your behalf. Contact us if you want a link removed.</p>
+
+        <h2>5. Storage and security</h2>
+        <p>Data is held in a PostgreSQL database hosted by Neon, and the site is served by Netlify. All traffic is encrypted with HTTPS, passwords are stored as one-way hashes, and sessions use expiring tokens.</p>
+
+        <h2>6. How long we keep your data</h2>
+        <p>We keep your data for as long as your account is active. You can delete individual readings yourself on the Review page, and you can ask us to delete your account and all associated data.</p>
+
+        <h2>7. Your rights</h2>
+        <ul>
+          <li>Request access to, or a copy of, your data.</li>
+          <li>Ask us to correct inaccurate information.</li>
+          <li>Ask us to delete your account and data.</li>
+          <li>Withdraw your consent to share data with your hospital at any time.</li>
+        </ul>
+
+        <h2>8. Medical disclaimer</h2>
+        <p>This service is a record-keeping tool. It is not a medical device and does not provide diagnosis or medical advice. Always consult your doctor before making decisions about your treatment. In an emergency, contact your local emergency services immediately.</p>
+
+        <h2>9. Minors</h2>
+        <p>The service is intended for adults under the care of a clinician. Minors should use it only with the supervision of a parent, guardian or healthcare professional.</p>
+
+        <h2>10. Changes to this policy</h2>
+        <p>If we change this policy, we will update the “Last updated” date shown above.</p>
+
+        <h2>11. Contact us</h2>
+        <p>For questions about this policy, or to exercise any of your rights, contact:<br />
+        <a class="text-indigo-300 hover:underline" href="mailto:thatchanokgolf@gmail.com">thatchanokgolf@gmail.com</a></p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  // The policy text is long prose, so each language is a full section that we
+  // show/hide rather than a set of i18n keys.
+  function renderDoc() {
+    const th = getLang() === 'th';
+    document.getElementById('docTh').classList.toggle('hidden', !th);
+    document.getElementById('docEn').classList.toggle('hidden', th);
+  }
+  renderDoc();
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => {
+    const f = document.getElementById('hbpFooter');
+    if (f) f.textContent = t('copyright');
+    renderDoc();
+  };
+</script>
