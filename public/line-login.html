@@ -22,6 +22,7 @@
     <div class="w-full max-w-sm hbp-card rounded-2xl shadow-2xl border border-white/10 p-6 text-center">
       <h2 class="text-xl font-semibold mb-4" data-i18n="line_login_title"></h2>
       <p id="msg" class="text-sm text-slate-300" data-i18n="line_connecting"></p>
+      <button id="lineBtn" class="hidden w-full mt-4 text-white rounded-lg px-4 py-2 font-medium hover:brightness-110" style="background:#06C755" data-i18n="line_login_btn"></button>
       <div class="mt-5">
         <a href="index.html" class="text-sm text-indigo-300 hover:underline" data-i18n="goto_login"></a>
       </div>
@@ -41,12 +42,20 @@
   (async () => {
     try {
       await liff.init({ liffId: LIFF_ID });
-      // Redirect back to a single canonical URL so exactly one value needs to be
-      // whitelisted as the LINE Login channel's Callback URL. Using location.href
-      // could vary (deploy-preview host, trailing slash) and trip a 400 on LINE.
+      // Not signed in -> LINE hands off to the LINE app via an iOS universal link.
+      // iOS only honours that from a real user gesture, so calling liff.login()
+      // straight from page load fails with universal_link_error / ACCOUNT_LOGIN_FAIL.
+      // Show a button and call login() synchronously inside the tap handler (an
+      // await in between would also discard the gesture).
       if (!liff.isLoggedIn()) {
-        liff.login({ redirectUri: 'https://homebp.netlify.app/line-login.html' });
-        return; // redirects to LINE, returns here
+        setMsg('line_tap_prompt', 'text-slate-300');
+        const btn = document.getElementById('lineBtn');
+        btn.classList.remove('hidden');
+        btn.addEventListener('click', () => {
+          // Canonical redirect target, so only one Callback URL needs whitelisting.
+          liff.login({ redirectUri: 'https://homebp.netlify.app/line-login.html' });
+        });
+        return;
       }
       // Use the access token (LIFF keeps it fresh) rather than the ID token,
       // which LIFF caches without refreshing and is often expired on return.

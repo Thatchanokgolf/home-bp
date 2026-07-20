@@ -148,19 +148,29 @@
       } finally { lineBtn.disabled = false; }
     }
 
+    // Initialise LIFF up front. The click handler must reach liff.login() with no
+    // await in between: on iOS the LINE app is opened via a universal link, which
+    // only works inside a live user gesture (an await discards it and LINE fails
+    // with universal_link_error / ACCOUNT_LOGIN_FAIL). Keep the button disabled
+    // until init resolves so the handler can run synchronously.
+    lineBtn.disabled = true;
+    const liffReady = liff
+      .init({ liffId: LIFF_ID })
+      .then(() => { lineBtn.disabled = false; })
+      .catch((e) => { lineBtn.disabled = false; console.error('LIFF init failed', e); });
+
     // Returning from a LINE redirect started here.
     (async () => {
       if (sessionStorage.getItem('hbp_line_settings_intent')) {
         sessionStorage.removeItem('hbp_line_settings_intent');
-        try { await liff.init({ liffId: LIFF_ID }); if (liff.isLoggedIn()) await completeLineLink(liff.getAccessToken()); } catch {}
+        try { await liffReady; if (liff.isLoggedIn()) await completeLineLink(liff.getAccessToken()); } catch {}
       }
     })();
 
-    lineBtn.addEventListener('click', async () => {
+    lineBtn.addEventListener('click', () => {
       try {
-        await liff.init({ liffId: LIFF_ID });
         if (liff.isLoggedIn()) {
-          await completeLineLink(liff.getAccessToken());
+          completeLineLink(liff.getAccessToken());
         } else {
           sessionStorage.setItem('hbp_line_settings_intent', '1');
           liff.login({ redirectUri: location.href });

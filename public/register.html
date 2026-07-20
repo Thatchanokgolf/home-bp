@@ -122,6 +122,14 @@
     location.href = u.role === 'admin' ? 'admin.html' : u.role === 'master' ? 'master.html' : 'user.html';
   }
 
+  // Initialise LIFF up front so the "Link LINE account" tap can reach liff.login()
+  // with no await in between: on iOS the LINE app opens via a universal link, which
+  // only works inside a live user gesture (an await discards it and LINE fails with
+  // universal_link_error / ACCOUNT_LOGIN_FAIL).
+  const liffReady = liff.init({ liffId: LIFF_ID }).catch((e) => {
+    console.error('LIFF init failed', e);
+  });
+
   // Returning from a LINE redirect started on the completion screen: finish linking,
   // then show a clear confirmation (no forced redirect).
   (async () => {
@@ -138,7 +146,7 @@
     document.getElementById('lineContinue').addEventListener('click', () => gotoHome(user));
     applyI18n();
     try {
-      await liff.init({ liffId: LIFF_ID });
+      await liffReady;
       if (!liff.isLoggedIn() || !liff.getAccessToken()) throw new Error('LINE login was not completed');
       await api('line-link', { access_token: liff.getAccessToken() });
       dmsg.className = 'text-green-600 font-medium mb-4';
@@ -150,34 +158,39 @@
   })();
 
   // Called from the completion screen's "Link LINE account" button.
-  async function linkLineAfterRegister() {
+  // Stays synchronous up to liff.login() so the iOS user gesture survives.
+  function linkLineAfterRegister() {
     const btn = document.getElementById('lineLinkBtn2');
     const msg = document.getElementById('lineMsg2');
-    btn.disabled = true;
     msg.classList.add('hidden');
     setSession(regUser, regToken); // authenticate as the just-created account
-    try {
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) {
-        // Needs LINE authorization -> redirect; we resume + link on return.
-        sessionStorage.setItem('hbp_line_postreg', JSON.stringify({ user: regUser, token: regToken }));
-        liff.login({ redirectUri: location.href });
-        return;
-      }
-      const at = liff.getAccessToken();
-      if (!at) throw new Error('LINE login was not completed');
-      await api('line-link', { access_token: at });
-      // Linked — stay on this screen so the details / QR stay visible.
-      msg.className = 'text-sm mt-2 text-green-600 font-medium';
-      msg.textContent = t('line_link_success');
-      msg.classList.remove('hidden');
-      btn.classList.add('hidden');
-    } catch (e) {
-      msg.className = 'text-sm mt-2 text-red-600';
-      msg.textContent = t('line_error') + ': ' + (e.message || e);
-      msg.classList.remove('hidden');
-      btn.disabled = false;
+
+    if (!liff.isLoggedIn()) {
+      // Needs LINE authorization -> redirect; we resume + link on return.
+      sessionStorage.setItem('hbp_line_postreg', JSON.stringify({ user: regUser, token: regToken }));
+      liff.login({ redirectUri: location.href });
+      return;
     }
+
+    // Already signed in: no app hand-off needed, so async work is fine here.
+    btn.disabled = true;
+    (async () => {
+      try {
+        const at = liff.getAccessToken();
+        if (!at) throw new Error('LINE login was not completed');
+        await api('line-link', { access_token: at });
+        // Linked — stay on this screen so the details / QR stay visible.
+        msg.className = 'text-sm mt-2 text-green-600 font-medium';
+        msg.textContent = t('line_link_success');
+        msg.classList.remove('hidden');
+        btn.classList.add('hidden');
+      } catch (e) {
+        msg.className = 'text-sm mt-2 text-red-600';
+        msg.textContent = t('line_error') + ': ' + (e.message || e);
+        msg.classList.remove('hidden');
+        btn.disabled = false;
+      }
+    })();
   }
 
   function validate(v) {
@@ -264,7 +277,12 @@
       });
 
       // Link a LINE account to this newly-created account (then log in).
-      document.getElementById('lineLinkBtn2').addEventListener('click', linkLineAfterRegister);
+      // Only tappable once LIFF init has resolved — linkLineAfterRegister calls
+      // liff.isLoggedIn() synchronously to keep the iOS gesture intact.
+      const lineBtn2 = document.getElementById('lineLinkBtn2');
+      lineBtn2.disabled = true;
+      liffReady.then(() => { lineBtn2.disabled = false; });
+      lineBtn2.addEventListener('click', linkLineAfterRegister);
 
       // QR code that opens the QR-login page and auto-fills this account's code.
       const qrBox = document.getElementById('qrBox');
