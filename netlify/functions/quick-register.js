@@ -45,9 +45,11 @@ exports.handler = async (event) => {
   const qrHash = await bcrypt.hash(qrCode, 10);
 
   // Insert first (username depends on the generated id), then set username "a<id>".
+  // New accounts default to shared = false (not visible to hospital staff until
+  // the user or a master opts in).
   const rows = await sql`
     INSERT INTO users (role, password, shared, hash_password, line_user_id)
-    VALUES ('user', ${hash}, true, ${qrHash}, ${lineSub})
+    VALUES ('user', ${hash}, false, ${qrHash}, ${lineSub})
     RETURNING id, role, shared`;
   const id = rows[0].id;
 
