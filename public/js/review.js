@@ -105,7 +105,7 @@ const HomeBPReview = (() => {
       card('sum_am', bpLine(s.am)) +
       card('sum_pm', bpLine(s.pm)) +
       card('sum_24', bpLine(s.all)) +
-      card('sum_freq', `${s.count} / ${s.max_expected}`, t('times'))
+      card('sum_freq', `${s.count} / ${s.max_expected}`, t('days_unit'))
     );
   }
 

@@ -36,18 +36,20 @@ exports.handler = async (event) => {
   const amRows = rows.filter((r) => r.ampm === 'AM');
   const pmRows = rows.filter((r) => r.ampm === 'PM');
 
-  // Expected max = 2 readings (AM + PM) per calendar day across the whole range.
+  // Frequency counts DAYS measured (not AM/PM entries): one per calendar day
+  // that has any reading, out of the total days in the range.
   const f = Date.parse(from), tt = Date.parse(to);
   const rangeDays = !isNaN(f) && !isNaN(tt) && tt >= f
     ? Math.floor((tt - f) / 86400000) + 1
     : 0;
+  const daysMeasured = new Set(rows.map((r) => r.date)).size;
 
   const summary = {
     am: { systolic: num(avg(amRows, 'systolic')), diastolic: num(avg(amRows, 'diastolic')), heart_rate: num(avg(amRows, 'heart_rate')) },
     pm: { systolic: num(avg(pmRows, 'systolic')), diastolic: num(avg(pmRows, 'diastolic')), heart_rate: num(avg(pmRows, 'heart_rate')) },
     all: { systolic: num(avg(rows, 'systolic')), diastolic: num(avg(rows, 'diastolic')), heart_rate: num(avg(rows, 'heart_rate')) },
-    count: rows.length,
-    max_expected: rangeDays * 2,
+    count: daysMeasured,
+    max_expected: rangeDays,
     days: rangeDays,
   };
 
