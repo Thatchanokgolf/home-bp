@@ -135,9 +135,8 @@ const HomeBPReview = (() => {
     const head =
       `<th class="px-3 py-2 text-left font-medium">${t('col_date')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_time')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_sys')}${headUnit('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_dia')}${headUnit('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_hr')}${headUnit('unit_bpm')}</th>` +
+      `<th class="px-3 py-2 text-center font-medium">${t('col_bp')}${headUnit('unit_mmhg')}</th>` +
+      `<th class="px-3 py-2 text-center font-medium">${t('col_hr')}${headUnit('unit_bpm')}</th>` +
       (canDelete ? `<th class="px-3 py-2 text-left font-medium">${t('col_action')}</th>` : '');
     const body = rows
       .map((row) => {
@@ -145,9 +144,8 @@ const HomeBPReview = (() => {
         return `<tr class="border-t">
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)}</td>
           <td class="px-3 py-2 whitespace-nowrap">${fmtHM(row.time)}</td>
-          <td class="px-3 py-2 font-bold ${c}">${row.systolic}</td>
-          <td class="px-3 py-2 font-bold ${c}">${row.diastolic}</td>
-          <td class="px-3 py-2 hbp-hr">${row.heart_rate}</td>
+          <td class="px-3 py-2 text-center font-bold text-lg ${c}">${row.systolic}/${row.diastolic}</td>
+          <td class="px-3 py-2 text-center hbp-hr font-bold">${row.heart_rate}</td>
           ${canDelete ? `<td class="px-3 py-2"><button class="js-del text-red-600 hover:underline" data-id="${row.id}">${t('delete')}</button></td>` : ''}
         </tr>`;
       })
@@ -161,17 +159,15 @@ const HomeBPReview = (() => {
     if (!rows.length) return `<p class="text-slate-400 py-6 text-center">${t('no_data')}</p>`;
     const head =
       `<th class="px-3 py-2 text-left font-medium">${t('col_date')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_sys')}${headUnit('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_dia')}${headUnit('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_hr')}${headUnit('unit_bpm')}</th>`;
+      `<th class="px-3 py-2 text-center font-medium">${t('col_bp')}${headUnit('unit_mmhg')}</th>` +
+      `<th class="px-3 py-2 text-center font-medium">${t('col_hr')}${headUnit('unit_bpm')}</th>`;
     const body = rows
       .map((row) => {
         const c = bpColorClass(r(row.systolic), r(row.diastolic));
         return `<tr class="border-t">
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)} <span class="text-slate-400 text-xs">${ampmLabel(row.ampm)}</span></td>
-          <td class="px-3 py-2 font-bold ${c}">${r(row.systolic)}</td>
-          <td class="px-3 py-2 font-bold ${c}">${r(row.diastolic)}</td>
-          <td class="px-3 py-2 hbp-hr">${r(row.heart_rate)}</td>
+          <td class="px-3 py-2 text-center font-bold text-lg ${c}">${r(row.systolic)}/${r(row.diastolic)}</td>
+          <td class="px-3 py-2 text-center hbp-hr font-bold">${r(row.heart_rate)}</td>
         </tr>`;
       })
       .join('');
