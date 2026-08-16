@@ -173,3 +173,23 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
   }
 });
+
+// ----- larger, more readable fonts (every page) -----
+// Bumps Tailwind's small text utilities so labels, captions, tables and notes
+// are easier to read. !important beats the CDN utilities regardless of order.
+function injectFontCss() {
+  if (document.getElementById('hbpFontCss')) return;
+  const s = document.createElement('style');
+  s.id = 'hbpFontCss';
+  s.textContent = `
+    .text-xs   { font-size: 0.875rem !important; line-height: 1.25rem !important; }  /* 12 -> 14px */
+    .text-sm   { font-size: 1rem     !important; line-height: 1.5rem  !important; }  /* 14 -> 16px */
+    .text-base { font-size: 1.0625rem !important; line-height: 1.6rem !important; }  /* 16 -> 17px */
+    .text-lg   { font-size: 1.1875rem !important; line-height: 1.7rem !important; }  /* 18 -> 19px */
+  `;
+  document.head.appendChild(s);
+}
+// Run immediately (head exists by the time this script runs at end of body) and
+// again on DOMContentLoaded as a fallback; the guard makes it idempotent.
+injectFontCss();
+document.addEventListener('DOMContentLoaded', injectFontCss);
