@@ -21,6 +21,7 @@
   <div class="flex gap-2 px-5 pt-4 border-b bg-white">
     <button id="tabSubmit" class="-mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_submit"></button>
     <button id="tabReview" class="-mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_review"></button>
+    <button id="tabShare" class="-mb-px border-b-2 px-4 py-2 font-medium" data-i18n="tab_share"></button>
   </div>
 
   <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto pb-10">
@@ -56,10 +57,25 @@
 
     <!-- Review pane -->
     <section id="paneReview" class="hidden">
-      <div class="mb-4">
-        <button id="shareDocBtn" class="bg-emerald-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50" data-i18n="share_doctor_btn"></button>
-      </div>
       <div id="reviewContainer"></div>
+    </section>
+
+    <!-- Share to doctor pane. The card is kept white via inline styles (not the
+         bg-white / text-slate utility classes) so dark mode never darkens it and
+         the QR code stays high-contrast and easy to scan. -->
+    <section id="paneShare" class="hidden">
+      <div class="max-w-sm mx-auto rounded-2xl shadow p-6 text-center" style="background:#ffffff;color:#0f172a">
+        <h3 class="text-lg font-semibold mb-2" data-i18n="share_doctor_title"></h3>
+        <p class="text-sm mb-4" style="color:#64748b" data-i18n="share_doctor_desc"></p>
+        <div id="shareQr" class="flex justify-center mb-3" style="min-height:200px"></div>
+        <p id="shareMsgErr" class="hidden text-sm mb-3" style="color:#dc2626"></p>
+        <p class="text-xs mb-4" style="color:#b45309" data-i18n="share_expiry_note"></p>
+        <div class="flex gap-2 justify-center">
+          <button id="shareCopy" class="text-white rounded-lg px-5 py-2 hover:brightness-110" style="background:#4f46e5" data-i18n="share_copy_link"></button>
+          <button id="shareRefresh" class="rounded-lg px-5 py-2 hover:brightness-95" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1" data-i18n="share_refresh"></button>
+        </div>
+        <p id="shareCopied" class="hidden text-xs mt-2" style="color:#16a34a" data-i18n="share_copied"></p>
+      </div>
     </section>
   </main>
 </div>
@@ -78,21 +94,6 @@
       <button id="cConfirm" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="confirm"></button>
       <button id="cCancel" class="flex-1 border rounded-lg py-2 hover:bg-slate-50" data-i18n="cancel"></button>
     </div>
-  </div>
-</div>
-
-<!-- Share to doctor modal -->
-<div id="shareModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-  <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
-    <h3 class="text-lg font-semibold mb-2 text-slate-800" data-i18n="share_doctor_title"></h3>
-    <p class="text-sm text-slate-500 mb-4" data-i18n="share_doctor_desc"></p>
-    <div id="shareQr" class="flex justify-center mb-3"></div>
-    <p class="text-xs text-amber-600 mb-4" data-i18n="share_expiry_note"></p>
-    <div class="flex gap-2">
-      <button id="shareCopy" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="share_copy_link"></button>
-      <button id="shareClose" class="flex-1 border rounded-lg py-2 hover:bg-slate-50" data-i18n="close"></button>
-    </div>
-    <p id="shareCopied" class="hidden text-xs text-green-600 mt-2" data-i18n="share_copied"></p>
   </div>
 </div>
 
@@ -144,46 +145,56 @@
     }
 
     // ---- tabs ----
+    const PANES = { submit: 'paneSubmit', review: 'paneReview', share: 'paneShare' };
+    const TABS = { submit: 'tabSubmit', review: 'tabReview', share: 'tabShare' };
     function show(which) {
-      const s = which === 'submit';
-      document.getElementById('paneSubmit').classList.toggle('hidden', !s);
-      document.getElementById('paneReview').classList.toggle('hidden', s);
-      for (const [id, on] of [['tabSubmit', s], ['tabReview', !s]]) {
+      for (const [key, id] of Object.entries(PANES))
+        document.getElementById(id).classList.toggle('hidden', key !== which);
+      for (const [key, id] of Object.entries(TABS)) {
+        const on = key === which;
         const b = document.getElementById(id);
         b.classList.toggle('border-indigo-600', on);
         b.classList.toggle('text-indigo-600', on);
         b.classList.toggle('border-transparent', !on);
         b.classList.toggle('text-slate-500', !on);
       }
-      if (!s) {
+      if (which === 'review') {
         if (!reviewApi) reviewApi = HomeBPReview.init(document.getElementById('reviewContainer'), user.id);
         else reviewApi.reload();
       }
+      if (which === 'share') genShare();
     }
     document.getElementById('tabSubmit').addEventListener('click', () => show('submit'));
     document.getElementById('tabReview').addEventListener('click', () => show('review'));
+    document.getElementById('tabShare').addEventListener('click', () => show('share'));
     show('submit');
     loadLast5();
 
     // ---- share to doctor (temporary read-only QR link, 30 min) ----
+    // A fresh 30-minute token is generated each time the tab is opened, or via
+    // "New link". The card is white (see markup) so the QR is easy to scan.
     let shareUrl = '';
-    const shareModal = document.getElementById('shareModal');
-    document.getElementById('shareDocBtn').addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      btn.disabled = true;
+    async function genShare() {
+      const box = document.getElementById('shareQr');
+      const err = document.getElementById('shareMsgErr');
+      const copy = document.getElementById('shareCopy');
+      err.classList.add('hidden');
+      document.getElementById('shareCopied').classList.add('hidden');
+      box.innerHTML = '';
+      copy.disabled = true;
       try {
         const { token } = await api('share-token', {});
         shareUrl = location.origin + '/shared.html?token=' + encodeURIComponent(token);
-        const box = document.getElementById('shareQr');
-        box.innerHTML = '';
         new QRCode(box, { text: shareUrl, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-        document.getElementById('shareCopied').classList.add('hidden');
-        shareModal.classList.remove('hidden');
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; }
-    });
-    document.getElementById('shareClose').addEventListener('click', () => shareModal.classList.add('hidden'));
+        copy.disabled = false;
+      } catch (e) {
+        err.textContent = e.message;
+        err.classList.remove('hidden');
+      }
+    }
+    document.getElementById('shareRefresh').addEventListener('click', genShare);
     document.getElementById('shareCopy').addEventListener('click', async () => {
+      if (!shareUrl) return;
       try { await navigator.clipboard.writeText(shareUrl); } catch {}
       const c = document.getElementById('shareCopied');
       c.classList.remove('hidden');
