@@ -44,9 +44,9 @@ exports.handler = async (event) => {
   const qrCode = genCode(20);
   const qrHash = await bcrypt.hash(qrCode, 10);
 
-  // Insert first (username depends on the generated id), then set username "a<id>".
-  // New accounts default to shared = false (not visible to hospital staff until
-  // the user or a master opts in).
+  // Insert first (username depends on the generated id), then set the username to
+  // the id number itself. New accounts default to shared = false (not visible to
+  // hospital staff until the user or a master opts in).
   const rows = await sql`
     INSERT INTO users (role, password, shared, hash_password, line_user_id)
     VALUES ('user', ${hash}, false, ${qrHash}, ${lineSub})
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
   const id = rows[0].id;
 
   const upd = await sql`
-    UPDATE users SET username = ${'a' + id} WHERE id = ${id}
+    UPDATE users SET username = ${String(id)} WHERE id = ${id}
     RETURNING id, email, hospital, hospital_id, username, first_name, last_name, role, shared`;
   const u = upd[0];
 
