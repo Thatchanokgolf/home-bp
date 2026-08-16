@@ -248,7 +248,21 @@ const HomeBPReview = (() => {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'top', labels: { color: tickColor } } },
+        plugins: {
+          legend: { position: 'top', labels: { color: tickColor } },
+          // The systolic segment is drawn as (systolic - diastolic); show the
+          // real systolic/diastolic value in the tooltip instead of the segment.
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const row = data[ctx.dataIndex];
+                return ctx.datasetIndex === 1
+                  ? `${t('graph_sys_full')}: ${r(row.systolic)} ${t('unit_mmhg')}`
+                  : `${t('graph_dia_full')}: ${r(row.diastolic)} ${t('unit_mmhg')}`;
+              },
+            },
+          },
+        },
         scales: {
           x: { stacked: true, ticks: { color: tickColor }, grid: { color: gridColor } },
           y: { stacked: true, beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } },
