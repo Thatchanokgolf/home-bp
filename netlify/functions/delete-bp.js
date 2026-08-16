@@ -1,18 +1,17 @@
-const bcrypt = require('bcryptjs');
 const { sql, ok, bad, parse } = require('./_db');
 const { verify, canViewUser } = require('./_auth');
 
-// POST /api/delete-bp  body: { reading_id, password }
+// POST /api/delete-bp  body: { reading_id }
 // Deletes one BP reading (owner, or admin/master allowed to view the user),
-// requires the logged-in person's password, then recomputes that day's average.
+// then recomputes that day's average. Confirmation is handled on the client;
+// no password is required.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
   const auth = verify(event);
   if (!auth) return bad('Unauthorized', 401);
 
-  const { reading_id, password } = parse(event);
+  const { reading_id } = parse(event);
   if (!reading_id) return bad('Missing reading');
-  if (!password) return bad('Password is required to delete');
 
   const rows = await sql`
     SELECT id, user_id, to_char(date, 'YYYY-MM-DD') AS date, ampm
@@ -21,11 +20,6 @@ exports.handler = async (event) => {
   const reading = rows[0];
 
   if (!(await canViewUser(auth, reading.user_id, sql))) return bad('Forbidden', 403);
-
-  // Verify the CURRENT user's password before allowing the delete.
-  const me = await sql`SELECT password FROM users WHERE id = ${auth.id}`;
-  if (!me.length || !(await bcrypt.compare(password, me[0].password)))
-    return bad('Incorrect password', 401);
 
   await sql`DELETE FROM bp_readings WHERE id = ${reading_id}`;
 

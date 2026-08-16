@@ -261,8 +261,7 @@ const HomeBPReview = (() => {
     m.innerHTML = `
       <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
         <h3 class="text-lg font-semibold mb-2 text-slate-800 js-dtitle"></h3>
-        <p class="text-sm text-slate-500 mb-3 js-dprompt"></p>
-        <input type="password" class="js-dpw w-full border rounded-lg px-3 py-2 mb-4" />
+        <p class="text-sm text-slate-500 mb-4 js-dprompt"></p>
         <div class="flex gap-2">
           <button class="js-dok flex-1 bg-red-600 text-white rounded-lg py-2 hover:bg-red-700 disabled:opacity-50"></button>
           <button class="js-dcancel flex-1 border rounded-lg py-2 hover:bg-slate-50"></button>
@@ -354,18 +353,16 @@ const HomeBPReview = (() => {
       container.querySelectorAll('.js-del').forEach((btn) => {
         btn.addEventListener('click', () => {
           modal.querySelector('.js-dtitle').textContent = t('delete_title');
-          modal.querySelector('.js-dprompt').textContent = t('delete_confirm_pw');
-          modal.querySelector('.js-dok').textContent = t('delete');
-          modal.querySelector('.js-dcancel').textContent = t('cancel');
-          const pw = modal.querySelector('.js-dpw');
-          pw.value = '';
+          modal.querySelector('.js-dprompt').textContent = t('delete_confirm');
+          modal.querySelector('.js-dok').textContent = t('yes');
+          modal.querySelector('.js-dcancel').textContent = t('no');
           modal.classList.remove('hidden');
           modal.querySelector('.js-dcancel').onclick = () => modal.classList.add('hidden');
           modal.querySelector('.js-dok').onclick = async () => {
             const ok = modal.querySelector('.js-dok');
             ok.disabled = true;
             try {
-              await api('delete-bp', { reading_id: Number(btn.dataset.id), password: pw.value });
+              await api('delete-bp', { reading_id: Number(btn.dataset.id) });
               modal.classList.add('hidden');
               load();
             } catch (e) {

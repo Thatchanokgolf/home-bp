@@ -170,6 +170,7 @@ const STRINGS = {
     master_delete_confirm: 'ลบผู้ใช้ ID {id} ({name}) อย่างถาวรพร้อมข้อมูลความดันทั้งหมด? ไม่สามารถกู้คืนได้',
     master_deleted_ok: 'ลบผู้ใช้แล้ว',
     delete_title: 'ลบรายการนี้?',
+    delete_confirm: 'คุณต้องการลบรายการนี้หรือไม่? ไม่สามารถกู้คืนได้',
     delete_confirm_pw: 'กรุณากรอกรหัสผ่านเพื่อยืนยันการลบ',
     deleted_ok: 'ลบรายการแล้ว',
 
@@ -374,6 +375,7 @@ const STRINGS = {
     master_delete_confirm: 'Permanently delete user ID {id} ({name}) and all their BP data? This cannot be undone.',
     master_deleted_ok: 'User deleted',
     delete_title: 'Delete this reading?',
+    delete_confirm: 'Are you sure you want to delete this reading? This cannot be undone.',
     delete_confirm_pw: 'Enter your password to confirm deletion',
     deleted_ok: 'Reading deleted',
 
