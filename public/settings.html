@@ -43,17 +43,6 @@
       </form>
     </div>
 
-    <!-- Share setting -->
-    <div class="bg-white rounded-2xl shadow p-6">
-      <h3 class="font-semibold mb-4 text-slate-700" data-i18n="share_setting_title"></h3>
-      <div class="flex items-center gap-4 mb-4">
-        <label><input type="radio" name="shared" value="yes" /> <span data-i18n="yes"></span></label>
-        <label><input type="radio" name="shared" value="no" /> <span data-i18n="no"></span></label>
-      </div>
-      <button id="shareBtn" class="bg-indigo-600 text-white rounded-lg px-5 py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="save"></button>
-      <p id="shareMsg" class="text-sm text-green-600 hidden mt-2" data-i18n="shared_saved"></p>
-    </div>
-
     <!-- LINE account -->
     <div class="bg-white rounded-2xl shadow p-6">
       <h3 class="font-semibold mb-2 text-slate-700" data-i18n="line_link_title"></h3>
@@ -76,9 +65,6 @@
     document.getElementById('backLink').href =
       user.role === 'admin' ? 'admin.html' : user.role === 'master' ? 'master.html' : 'user.html';
 
-    // Reflect current shared state.
-    document.querySelector(`input[name="shared"][value="${user.shared ? 'yes' : 'no'}"]`).checked = true;
-
     // Change password (old password entered twice, plus new password twice).
     document.getElementById('pwForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -100,22 +86,6 @@
       } catch (err) {
         msg.className = 'text-sm text-red-600'; msg.textContent = err.message; msg.classList.remove('hidden');
       } finally { btn.disabled = false; }
-    });
-
-    // Change shared setting.
-    document.getElementById('shareBtn').addEventListener('click', async () => {
-      const val = document.querySelector('input[name="shared"]:checked').value;
-      const btn = document.getElementById('shareBtn');
-      btn.disabled = true;
-      try {
-        const { shared } = await api('update-shared', { shared: val });
-        user.shared = shared;
-        setSession(user, getToken());
-        const m = document.getElementById('shareMsg');
-        m.classList.remove('hidden');
-        setTimeout(() => m.classList.add('hidden'), 2500);
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; }
     });
 
     // ---- LINE account linking ----
