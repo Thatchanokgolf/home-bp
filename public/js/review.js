@@ -33,6 +33,16 @@ const HomeBPReview = (() => {
   };
 
   const r = (v) => (v == null ? null : Math.round(Number(v)));
+
+  // Clinical colour band for a reading (first match wins). Colours are defined
+  // in api.js and adapt to light/dark mode.
+  function bpColorClass(sys, dia) {
+    const s = Number(sys), d = Number(dia);
+    if (s >= 160 || s <= 90 || d >= 100) return 'hbp-bp-red';
+    if (s >= 140 || s <= 100 || d >= 90) return 'hbp-bp-orange';
+    if (s >= 130 || d >= 80) return 'hbp-bp-yellow';
+    return 'hbp-bp-green';
+  }
   const u = (key) => `<span class="text-slate-400 text-xs">${t(key)}</span>`;
 
   // Summary value: BP on the first line, heart rate on a smaller red second line.
@@ -109,16 +119,17 @@ const HomeBPReview = (() => {
       `<th class="px-3 py-2 text-left font-medium">${t('col_hr')} ${t('unit_bpm')}</th>` +
       (canDelete ? `<th class="px-3 py-2 text-left font-medium">${t('col_action')}</th>` : '');
     const body = rows
-      .map(
-        (row) => `<tr class="border-t">
+      .map((row) => {
+        const c = bpColorClass(row.systolic, row.diastolic);
+        return `<tr class="border-t">
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)}</td>
           <td class="px-3 py-2 whitespace-nowrap">${fmtHM(row.time)}</td>
-          <td class="px-3 py-2">${row.systolic}</td>
-          <td class="px-3 py-2">${row.diastolic}</td>
-          <td class="px-3 py-2">${row.heart_rate}</td>
+          <td class="px-3 py-2 font-bold ${c}">${row.systolic}</td>
+          <td class="px-3 py-2 font-bold ${c}">${row.diastolic}</td>
+          <td class="px-3 py-2 hbp-hr">${row.heart_rate}</td>
           ${canDelete ? `<td class="px-3 py-2"><button class="js-del text-red-600 hover:underline" data-id="${row.id}">${t('delete')}</button></td>` : ''}
-        </tr>`
-      )
+        </tr>`;
+      })
       .join('');
     return `<div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl border">
       <thead class="bg-slate-50 text-slate-600">${head}</thead><tbody>${body}</tbody></table></div>`;

@@ -190,6 +190,19 @@ function injectFontCss() {
     .text-sm   { font-size: 1rem     !important; line-height: 1.5rem  !important; }  /* 14 -> 16px */
     .text-base { font-size: 1.0625rem !important; line-height: 1.6rem !important; }  /* 16 -> 17px */
     .text-lg   { font-size: 1.1875rem !important; line-height: 1.7rem !important; }  /* 18 -> 19px */
+
+    /* Clinical colour bands for BP values (light mode). */
+    .hbp-bp-red    { color: #dc2626; }
+    .hbp-bp-orange { color: #ea580c; }
+    .hbp-bp-yellow { color: #ca8a04; }
+    .hbp-bp-green  { color: #16a34a; }
+    .hbp-hr        { color: #6b7280; }
+    /* Brighter equivalents so the bands stay legible on the dark background. */
+    .hbp-dark .hbp-bp-red    { color: #f87171 !important; }
+    .hbp-dark .hbp-bp-orange { color: #fb923c !important; }
+    .hbp-dark .hbp-bp-yellow { color: #facc15 !important; }
+    .hbp-dark .hbp-bp-green  { color: #4ade80 !important; }
+    .hbp-dark .hbp-hr        { color: #9ca3af !important; }
   `;
   document.head.appendChild(s);
 }
