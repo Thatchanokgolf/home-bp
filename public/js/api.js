@@ -197,6 +197,9 @@ function injectFontCss() {
     .hbp-bp-yellow { color: #ca8a04; }
     .hbp-bp-green  { color: #16a34a; }
     .hbp-hr        { color: #6b7280; }
+    /* Summary BP cards: light grey in light mode, dark surface in dark mode. */
+    .hbp-sumcard { background: #e2e8f0; }
+    .hbp-dark .hbp-sumcard { background: #20263a !important; }
     /* Brighter equivalents so the bands stay legible on the dark background. */
     .hbp-dark .hbp-bp-red    { color: #f87171 !important; }
     .hbp-dark .hbp-bp-orange { color: #fb923c !important; }

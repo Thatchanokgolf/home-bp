@@ -112,7 +112,7 @@ const HomeBPReview = (() => {
 
   function summaryCards(s) {
     const card = (labelKey, value, sub) => `
-      <div class="bg-white rounded-xl border p-3 shadow-sm">
+      <div class="hbp-sumcard rounded-xl border p-3 shadow-sm">
         <div class="text-xs text-slate-500" data-i18n="${labelKey}"></div>
         <div class="text-base font-semibold text-slate-800">${value}</div>
         ${sub ? `<div class="text-xs text-slate-400 mt-0.5">${sub}</div>` : ''}
