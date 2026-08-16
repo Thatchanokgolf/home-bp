@@ -1,0 +1,231 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Sign up</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  .hbp-bg {
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,0.28), transparent 60%),
+      radial-gradient(900px 500px at 110% 20%, rgba(6,182,212,0.20), transparent 55%),
+      linear-gradient(160deg, #05060a 0%, #0b1020 55%, #05060a 100%);
+  }
+  .hbp-card { background: rgba(17,20,32,0.72); backdrop-filter: blur(10px); }
+</style>
+<div class="min-h-screen hbp-bg flex flex-col text-slate-100">
+  <header class="flex items-center justify-between px-5 py-3">
+    <h1 class="font-semibold text-lg tracking-tight text-white" data-i18n="app_title_monitor"></h1>
+    <button id="langToggle" onclick="toggleLang()" class="text-sm border border-white/20 rounded-lg px-3 py-1 hover:bg-white/10"></button>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm hbp-card rounded-2xl shadow-2xl border border-white/10 p-6">
+      <h2 class="text-xl font-semibold mb-4" data-i18n="signup_title"></h2>
+
+      <!-- Process 1: plain web visit — create on a tap. -->
+      <div id="startPane">
+        <p class="text-sm text-slate-300 mb-5" data-i18n="signup_intro"></p>
+        <button id="createBtn" class="w-full bg-indigo-600 text-white rounded-lg py-2.5 font-medium hover:bg-indigo-500 disabled:opacity-50" data-i18n="signup_create_btn"></button>
+        <p id="startMsg" class="hidden text-sm mt-3 text-red-400"></p>
+        <div class="mt-4 text-sm">
+          <a href="index.html" class="text-indigo-300 hover:underline" data-i18n="goto_login"></a>
+        </div>
+      </div>
+
+      <!-- Process 2: arriving from LINE — auto create + link. -->
+      <div id="linePane" class="hidden text-center py-4">
+        <p class="text-sm text-slate-300" data-i18n="signup_line_creating"></p>
+        <p id="lineErr" class="hidden text-sm mt-3 text-red-400"></p>
+      </div>
+
+      <!-- Completion: show the generated credentials. -->
+      <div id="donePane" class="hidden">
+        <p class="text-green-400 font-medium mb-4" data-i18n="signup_done_title"></p>
+
+        <div class="space-y-3">
+          <div class="bg-white/5 border border-white/15 rounded-lg px-4 py-3">
+            <div class="text-xs text-slate-400" data-i18n="signup_username"></div>
+            <div id="outUser" class="text-lg font-semibold text-white tracking-wide"></div>
+          </div>
+          <div class="bg-white/5 border border-white/15 rounded-lg px-4 py-3">
+            <div class="text-xs text-slate-400" data-i18n="signup_password"></div>
+            <div id="outPass" class="text-lg font-semibold text-white tracking-widest"></div>
+          </div>
+        </div>
+
+        <p class="text-sm text-amber-400 mt-4" data-i18n="signup_save_note"></p>
+
+        <div class="mt-4 flex flex-col items-center">
+          <div id="qrBox" class="bg-white p-2 rounded-lg"></div>
+          <p class="text-xs text-slate-400 mt-2 text-center" data-i18n="signup_qr_hint"></p>
+        </div>
+
+        <!-- Connect LINE (only when not already linked). -->
+        <button id="connectLineBtn" class="w-full mt-5 text-white rounded-lg py-2.5 font-medium hover:brightness-110 disabled:opacity-50" style="background:#06C755" data-i18n="line_link_btn"></button>
+        <p id="lineLinkedNote" class="hidden text-sm mt-4 text-green-400 text-center"></p>
+        <p id="connectMsg" class="hidden text-sm mt-2"></p>
+
+        <button id="continueBtn" class="w-full mt-4 bg-indigo-600 text-white rounded-lg py-2.5 font-medium hover:bg-indigo-500" data-i18n="signup_continue"></button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const LIFF_ID = '2010745308-dTpWiHuY';
+  const SIGNUP_URL = 'https://homebp.netlify.app/signup.html';
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  // Already logged in? Go straight to the app.
+  const existing = getUser();
+  if (existing && getToken()) {
+    location.href = existing.role === 'admin' ? 'admin.html' : existing.role === 'master' ? 'master.html' : 'user.html';
+  }
+
+  // Initialise LIFF up front so the "Connect LINE" tap can reach liff.login() with
+  // no await in between (iOS opens the LINE app via a universal link, which only
+  // works inside a live user gesture).
+  const liffReady = liff.init({ liffId: LIFF_ID }).catch((e) => console.error('LIFF init failed', e));
+
+  const startPane = document.getElementById('startPane');
+  const linePane = document.getElementById('linePane');
+  const donePane = document.getElementById('donePane');
+
+  function gotoHome(u) {
+    location.href = u.role === 'admin' ? 'admin.html' : u.role === 'master' ? 'master.html' : 'user.html';
+  }
+
+  // Holds the signup response so a "Connect LINE" redirect can restore the full
+  // completion screen (credentials + QR) on return.
+  let lastSignup = null;
+
+  // Show the completion screen with the generated credentials.
+  function showDone(data, lineLinked) {
+    lastSignup = data;
+    setSession(data.user, data.token);
+    startPane.classList.add('hidden');
+    linePane.classList.add('hidden');
+    donePane.classList.remove('hidden');
+    document.getElementById('outUser').textContent = data.user.username;
+    document.getElementById('outPass').textContent = data.password;
+
+    // QR that logs straight in via qr-login.html.
+    const qrUrl = location.origin + '/qr-login.html?uid=' + data.user.id + '&code=' + encodeURIComponent(data.qr_code);
+    document.getElementById('qrBox').innerHTML = '';
+    new QRCode(document.getElementById('qrBox'), {
+      text: qrUrl, width: 132, height: 132,
+      colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M,
+    });
+
+    const connectBtn = document.getElementById('connectLineBtn');
+    const linkedNote = document.getElementById('lineLinkedNote');
+    if (lineLinked) {
+      connectBtn.classList.add('hidden');
+      linkedNote.textContent = '✓ ' + t('line_linked_yes');
+      linkedNote.classList.remove('hidden');
+    } else {
+      connectBtn.classList.remove('hidden');
+      linkedNote.classList.add('hidden');
+    }
+    document.getElementById('continueBtn').onclick = () => gotoHome(data.user);
+  }
+
+  // ---- Load-time routing ----
+  (async () => {
+    // (a) Returning from a "Connect LINE" redirect started on this page.
+    const ret = sessionStorage.getItem('hbp_signup_line_return');
+    if (ret) {
+      sessionStorage.removeItem('hbp_signup_line_return');
+      const data = JSON.parse(ret);
+      showDone(data, false);
+      const msg = document.getElementById('connectMsg');
+      try {
+        await liffReady;
+        if (!liff.isLoggedIn() || !liff.getAccessToken()) throw new Error(t('line_error'));
+        await api('line-link', { access_token: liff.getAccessToken() });
+        data.user.line_linked = true;
+        setSession(data.user, data.token);
+        document.getElementById('connectLineBtn').classList.add('hidden');
+        const linkedNote = document.getElementById('lineLinkedNote');
+        linkedNote.textContent = '✓ ' + t('line_linked_yes');
+        linkedNote.classList.remove('hidden');
+      } catch (e) {
+        msg.className = 'text-sm mt-2 text-red-400';
+        msg.textContent = t('line_error') + ': ' + (e.message || e);
+        msg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    // (b) Process 2: arrived from LINE with no linked account -> auto register + link.
+    const lineToken = sessionStorage.getItem('hbp_line_signup_token');
+    if (lineToken) {
+      sessionStorage.removeItem('hbp_line_signup_token');
+      startPane.classList.add('hidden');
+      linePane.classList.remove('hidden');
+      try {
+        const data = await api('quick-register', { line_access_token: lineToken });
+        showDone(data, true);
+      } catch (e) {
+        const err = document.getElementById('lineErr');
+        err.textContent = (e.message || e) + '';
+        err.classList.remove('hidden');
+      }
+      return;
+    }
+
+    // (c) Process 1: plain web visit -> wait for a tap.
+    document.getElementById('createBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('createBtn');
+      const msg = document.getElementById('startMsg');
+      btn.disabled = true;
+      msg.classList.add('hidden');
+      try {
+        const data = await api('quick-register', {});
+        showDone(data, false);
+      } catch (e) {
+        msg.textContent = (e.message || e) + '';
+        msg.classList.remove('hidden');
+        btn.disabled = false;
+      }
+    });
+  })();
+
+  // Connect LINE to the just-created account (Process 1 completion screen).
+  // Kept synchronous up to liff.login() so the iOS user gesture survives.
+  document.getElementById('connectLineBtn').addEventListener('click', () => {
+    const btn = document.getElementById('connectLineBtn');
+    const msg = document.getElementById('connectMsg');
+    msg.classList.add('hidden');
+
+    if (!liff.isLoggedIn()) {
+      // Needs LINE authorization -> redirect; resume + link on return.
+      sessionStorage.setItem('hbp_signup_line_return', JSON.stringify(lastSignup));
+      liff.login({ redirectUri: SIGNUP_URL });
+      return;
+    }
+
+    btn.disabled = true;
+    (async () => {
+      try {
+        const at = liff.getAccessToken();
+        if (!at) throw new Error(t('line_error'));
+        await api('line-link', { access_token: at });
+        const u = getUser(); u.line_linked = true; setSession(u, getToken());
+        btn.classList.add('hidden');
+        const linkedNote = document.getElementById('lineLinkedNote');
+        linkedNote.textContent = '✓ ' + t('line_linked_yes');
+        linkedNote.classList.remove('hidden');
+      } catch (e) {
+        msg.className = 'text-sm mt-2 text-red-400';
+        msg.textContent = t('line_error') + ': ' + (e.message || e);
+        msg.classList.remove('hidden');
+        btn.disabled = false;
+      }
+    })();
+  });
+</script>
