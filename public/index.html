@@ -26,31 +26,20 @@
         <input id="password" type="password" data-i18n-ph="password" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         <button class="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-500" data-i18n="login_btn"></button>
       </form>
-      <div class="flex justify-between mt-4 text-sm">
-        <a href="#" id="forgotLink" class="text-indigo-300 hover:underline" data-i18n="forgot_pw"></a>
-        <a href="signup.html" class="text-indigo-300 hover:underline" data-i18n="go_register"></a>
-      </div>
-      <div class="mt-3">
+      <div class="mt-4">
         <!-- The LIFF URL is a universal link: on a phone with LINE installed it opens
              the LINE app, which loads line-login.html (the LIFF endpoint) in its
              in-app browser where the user is already signed in — no web login step.
              In a desktop browser LINE falls back to its normal web flow. -->
         <a href="https://liff.line.me/2010745308-dTpWiHuY" class="block text-sm text-white rounded-lg px-4 py-2 text-center font-medium hover:brightness-110" style="background:#06C755" data-i18n="line_login_btn"></a>
       </div>
+      <div class="mt-3 text-center text-sm">
+        <a href="signup.html" class="text-indigo-300 hover:underline" data-i18n="go_register"></a>
+      </div>
 
       <div class="mt-6 pt-4 border-t border-white/10 flex flex-col items-center">
         <div id="siteQr" class="bg-white p-2 rounded-lg"></div>
         <p class="text-xs text-slate-400 mt-2 text-center" data-i18n="qr_site_caption"></p>
-      </div>
-
-      <div id="forgotPanel" class="hidden mt-5 border-t border-white/10 pt-4">
-        <p class="text-sm text-slate-300 mb-2" data-i18n="forgot_prompt"></p>
-        <input id="forgotEmail" type="email" data-i18n-ph="email" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 mb-2 placeholder-slate-400" />
-        <div class="flex gap-2">
-          <button id="forgotSend" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-500" data-i18n="send"></button>
-          <button id="forgotCancel" class="flex-1 border border-white/20 rounded-lg py-2 hover:bg-white/10" data-i18n="cancel"></button>
-        </div>
-        <p id="forgotMsg" class="text-sm mt-2"></p>
       </div>
     </div>
   </main>
@@ -83,23 +72,6 @@
       location.href = user.role === 'admin' ? 'admin.html' : user.role === 'master' ? 'master.html' : 'user.html';
     } catch (err) {
       alert(err.message);
-    }
-  });
-
-  const panel = document.getElementById('forgotPanel');
-  document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); panel.classList.toggle('hidden'); });
-  document.getElementById('forgotCancel').addEventListener('click', () => panel.classList.add('hidden'));
-  document.getElementById('forgotSend').addEventListener('click', async () => {
-    const msg = document.getElementById('forgotMsg');
-    try {
-      const r = await api('forgot-password', { email: document.getElementById('forgotEmail').value });
-      msg.className = 'text-sm mt-2 text-green-400';
-      msg.textContent = r.sent
-        ? (getLang() === 'th' ? 'ส่งรหัสผ่านใหม่ไปที่อีเมลแล้ว' : 'A new password was e-mailed to you.')
-        : (getLang() === 'th' ? 'รหัสผ่านใหม่: ' : 'New password: ') + r.password;
-    } catch (err) {
-      msg.className = 'text-sm mt-2 text-red-400';
-      msg.textContent = err.message;
     }
   });
 </script>
