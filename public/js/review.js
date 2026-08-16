@@ -89,7 +89,17 @@ const HomeBPReview = (() => {
         <button class="js-apply bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700" data-i18n="apply"></button>
       </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 js-summary"></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 js-summary"></div>
+
+      <div class="mb-5 rounded-xl border p-3 bg-white text-xs text-slate-500">
+        <div class="font-semibold mb-2" data-i18n="legend_title"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#16a34a"></span><span data-i18n="legend_green_r"></span></div>
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ca8a04"></span><span data-i18n="legend_yellow_r"></span></div>
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ea580c"></span><span data-i18n="legend_orange_r"></span></div>
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#dc2626"></span><span data-i18n="legend_red_r"></span></div>
+        </div>
+      </div>
 
       <div class="flex gap-2 mb-4 border-b">
         <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="avg" data-i18n="tab_avg"></button>
