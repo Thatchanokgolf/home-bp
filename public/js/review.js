@@ -3,7 +3,19 @@
 const HomeBPReview = (() => {
   let barChart = null;
   let lineChart = null;
-  const MAX_BARS = 14;
+  // Bars shown per graph timeframe (weekly -> 12 weeks, monthly -> 6 months).
+  const BAR_LIMITS = { ampm: 14, daily: 14, weekly: 12, monthly: 6 };
+  // Graph pulls ~6 months of history so weekly/monthly have enough data.
+  const GRAPH_DAYS = 183;
+
+  // Segmented All / AM / PM filter. `cur` is the active value ('all'|'AM'|'PM').
+  function ampmControl(cur) {
+    const b = (val, label) => {
+      const on = cur === val;
+      return `<button class="js-ampm px-3 py-1 text-sm ${on ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}" data-ampm="${val}">${label}</button>`;
+    };
+    return `<span class="inline-flex rounded-lg border overflow-hidden">${b('all', t('ampm_all'))}${b('AM', 'AM')}${b('PM', 'PM')}</span>`;
+  }
 
   // Inline plugin: dashed reference lines at clinical thresholds (systolic 130, diastolic 80).
   const thresholdLines = {
@@ -88,6 +100,7 @@ const HomeBPReview = (() => {
           <button class="js-tf text-xs rounded-full px-3 py-1 bg-slate-100 text-slate-600" data-tf="weekly" data-i18n="tf_weekly"></button>
           <button class="js-tf text-xs rounded-full px-3 py-1 bg-slate-100 text-slate-600" data-tf="monthly" data-i18n="tf_monthly"></button>
         </div>
+        <div class="js-graph-ampm hidden mb-3"></div>
         <div class="relative w-full" style="height:280px"><canvas class="js-canvas-bp"></canvas></div>
         <div class="relative w-full mt-8" style="height:220px"><canvas class="js-canvas-hr"></canvas></div>
       </div>
@@ -200,7 +213,7 @@ const HomeBPReview = (() => {
   }
 
   function drawCharts(canvasBp, canvasHr, items) {
-    const data = items.slice(-MAX_BARS); // at most 14, most recent
+    const data = items; // already limited per timeframe by the caller
     const labels = data.map((row) => row.label);
 
     // Theme-aware axis / legend colors.
@@ -290,13 +303,19 @@ const HomeBPReview = (() => {
     let timeframe = 'ampm';
     let allRows = [];
     let allSortDesc = true; // newest first by default
+    let allAmpm = 'all';    // All BP: AM/PM filter
     let allPage = 0;
+    let avgSortDesc = true;  // Average BP: sort order
+    let avgAmpm = 'all';     // Average BP: AM/PM filter
+    let graphRows = null;    // ~6 months of avg data for the graph (lazy)
+    let graphAmpm = 'all';   // AM-PM graph: which half-day to show
     const PAGE_SIZE = 50;
 
-    // Renders the "All BP Reading" tab with sorting + 50-per-page pagination.
+    // Renders the "All BP Reading" tab: AM/PM filter + sort + 50-per-page pages.
     function renderAllPane() {
       if (!allRows.length) { $('.js-pane-all').innerHTML = tableAll([], !readOnly); return; }
-      const sorted = [...allRows].sort((a, b) => {
+      const filtered = allAmpm === 'all' ? allRows : allRows.filter((x) => x.ampm === allAmpm);
+      const sorted = [...filtered].sort((a, b) => {
         const ka = `${a.date}T${a.time}`, kb = `${b.date}T${b.time}`;
         if (ka === kb) return 0;
         const cmp = ka < kb ? -1 : 1;
@@ -307,9 +326,12 @@ const HomeBPReview = (() => {
       if (allPage < 0) allPage = 0;
       const pageRows = sorted.slice(allPage * PAGE_SIZE, allPage * PAGE_SIZE + PAGE_SIZE);
 
-      const controls = `<div class="flex items-center justify-between gap-2 mb-3">
+      const controls = `<div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <span class="text-xs text-slate-500">${sorted.length} ${t('records')}</span>
-        <button class="js-sort text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">${allSortDesc ? t('sort_newest') : t('sort_oldest')}</button>
+        <div class="flex items-center gap-2">
+          ${ampmControl(allAmpm)}
+          <button class="js-sort text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">${allSortDesc ? t('sort_newest') : t('sort_oldest')}</button>
+        </div>
       </div>`;
       const pager = sorted.length > PAGE_SIZE ? `
         <div class="flex items-center justify-center gap-3 mt-4">
@@ -320,17 +342,70 @@ const HomeBPReview = (() => {
 
       $('.js-pane-all').innerHTML = controls + tableAll(pageRows, !readOnly) + pager;
 
-      const sortBtn = $('.js-sort');
+      const pane = $('.js-pane-all');
+      pane.querySelectorAll('.js-ampm').forEach((x) =>
+        x.addEventListener('click', () => { allAmpm = x.dataset.ampm; allPage = 0; renderAllPane(); }));
+      const sortBtn = pane.querySelector('.js-sort');
       if (sortBtn) sortBtn.addEventListener('click', () => { allSortDesc = !allSortDesc; allPage = 0; renderAllPane(); });
-      const prevBtn = $('.js-all-prev');
+      const prevBtn = pane.querySelector('.js-all-prev');
       if (prevBtn) prevBtn.addEventListener('click', () => { allPage = Math.max(0, allPage - 1); renderAllPane(); });
-      const nextBtn = $('.js-all-next');
+      const nextBtn = pane.querySelector('.js-all-next');
       if (nextBtn) nextBtn.addEventListener('click', () => { allPage += 1; renderAllPane(); });
       if (!readOnly) wireDelete();
     }
 
-    function drawGraph() {
-      drawCharts($('.js-canvas-bp'), $('.js-canvas-hr'), aggregate(avgRows, timeframe));
+    // Renders the "Average BP" tab: AM/PM filter + sort order.
+    function renderAvgPane() {
+      if (!avgRows.length) { $('.js-pane-avg').innerHTML = tableAvg([]); return; }
+      const filtered = avgAmpm === 'all' ? avgRows : avgRows.filter((x) => x.ampm === avgAmpm);
+      const sorted = [...filtered].sort((a, b) => {
+        const ka = `${a.date}-${a.ampm}`, kb = `${b.date}-${b.ampm}`;
+        if (ka === kb) return 0;
+        const cmp = ka < kb ? -1 : 1;
+        return avgSortDesc ? -cmp : cmp;
+      });
+      const controls = `<div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <span class="text-xs text-slate-500">${sorted.length} ${t('records')}</span>
+        <div class="flex items-center gap-2">
+          ${ampmControl(avgAmpm)}
+          <button class="js-sort text-sm border rounded-lg px-3 py-1 hover:bg-slate-50">${avgSortDesc ? t('sort_newest') : t('sort_oldest')}</button>
+        </div>
+      </div>`;
+      $('.js-pane-avg').innerHTML = controls + tableAvg(sorted);
+      const pane = $('.js-pane-avg');
+      pane.querySelectorAll('.js-ampm').forEach((x) =>
+        x.addEventListener('click', () => { avgAmpm = x.dataset.ampm; renderAvgPane(); }));
+      const sortBtn = pane.querySelector('.js-sort');
+      if (sortBtn) sortBtn.addEventListener('click', () => { avgSortDesc = !avgSortDesc; renderAvgPane(); });
+    }
+
+    // Lazily fetch ~6 months of averages for the graph (independent of the
+    // date-range pickers, so weekly/monthly always have enough history).
+    async function ensureGraphData() {
+      if (graphRows) return;
+      try {
+        const res = await fetchApi('avg-list', {
+          user_id: userId, from: ymd(daysAgo(GRAPH_DAYS)), to: ymd(new Date()),
+        });
+        graphRows = res.rows;
+      } catch (e) { graphRows = []; }
+    }
+
+    async function drawGraph() {
+      await ensureGraphData();
+      let rows = graphRows;
+      // The AM/PM sub-filter only applies to the AM-PM timeframe.
+      if (timeframe === 'ampm' && graphAmpm !== 'all') rows = rows.filter((x) => x.ampm === graphAmpm);
+      const items = aggregate(rows, timeframe).slice(-BAR_LIMITS[timeframe]);
+      drawCharts($('.js-canvas-bp'), $('.js-canvas-hr'), items);
+
+      const box = $('.js-graph-ampm');
+      box.classList.toggle('hidden', timeframe !== 'ampm');
+      if (timeframe === 'ampm') {
+        box.innerHTML = ampmControl(graphAmpm);
+        box.querySelectorAll('.js-ampm').forEach((x) =>
+          x.addEventListener('click', () => { graphAmpm = x.dataset.ampm; drawGraph(); }));
+      }
     }
 
     function activate(tab) {
@@ -395,10 +470,11 @@ const HomeBPReview = (() => {
         avgRows = avg.rows;
         allRows = all.rows;
         allPage = 0; // fresh data -> back to first page (sort order is preserved)
+        graphRows = null; // invalidate the graph's window so it refetches
         $('.js-summary').innerHTML = summaryCards(avg.summary);
-        $('.js-pane-avg').innerHTML = tableAvg(avg.rows);
         applyI18n();
         renderAllPane();
+        renderAvgPane();
         activate(currentTab);
       } catch (e) {
         alert(e.message);
