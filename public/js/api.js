@@ -149,6 +149,8 @@ function injectDarkCss() {
     /* Bordered buttons/links (header, modal Cancel) need a visible surface. */
     .hbp-dark button.border, .hbp-dark a.border { background: rgba(255,255,255,0.06) !important; }
     .hbp-dark .bg-slate-50 { background: rgba(255,255,255,0.05) !important; }
+    /* Active-tab highlight: a visible indigo tint in dark mode. */
+    .hbp-dark .bg-indigo-50 { background: rgba(99,102,241,0.22) !important; }
     .hbp-dark .text-slate-800 { color: #e5e7eb !important; }
     .hbp-dark .text-slate-700 { color: #d8dee9 !important; }
     .hbp-dark .text-slate-600 { color: #c3ccd9 !important; }

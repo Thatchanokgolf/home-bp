@@ -62,9 +62,9 @@ const HomeBPReview = (() => {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 js-summary"></div>
 
       <div class="flex gap-2 mb-4 border-b">
-        <button class="js-t -mb-px border-b-2 px-4 py-2 text-sm font-medium" data-tab="all" data-i18n="tab_all"></button>
-        <button class="js-t -mb-px border-b-2 px-4 py-2 text-sm font-medium" data-tab="avg" data-i18n="tab_avg"></button>
-        <button class="js-t -mb-px border-b-2 px-4 py-2 text-sm font-medium" data-tab="graph" data-i18n="tab_graph"></button>
+        <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="all" data-i18n="tab_all"></button>
+        <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="avg" data-i18n="tab_avg"></button>
+        <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="graph" data-i18n="tab_graph"></button>
       </div>
 
       <div class="js-pane-all"></div>
@@ -326,6 +326,7 @@ const HomeBPReview = (() => {
         const on = b.dataset.tab === tab;
         b.classList.toggle('border-indigo-600', on);
         b.classList.toggle('text-indigo-600', on);
+        b.classList.toggle('bg-indigo-50', on);
         b.classList.toggle('border-transparent', !on);
         b.classList.toggle('text-slate-500', !on);
       });
