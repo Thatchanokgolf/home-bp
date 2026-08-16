@@ -45,13 +45,15 @@ const HomeBPReview = (() => {
   }
   const u = (key) => `<span class="text-slate-400 text-xs">${t(key)}</span>`;
 
-  // Summary value: BP on the first line, heart rate on a smaller red second line.
+  // Summary value: colour-coded BP on the first line, heart rate on a smaller
+  // grey second line.
   function bpLine(o) {
     if (!o || o.systolic == null) return '-';
+    const c = bpColorClass(o.systolic, o.diastolic);
     return (
-      `${r(o.systolic)}/${r(o.diastolic)} ${u('unit_mmhg')}` +
-      `<div class="text-red-600 text-xs font-normal mt-1">` +
-      `${t('hr_prefix')} ${r(o.heart_rate)} <span class="text-red-400">${t('unit_bpm')}</span></div>`
+      `<span class="${c}">${r(o.systolic)}/${r(o.diastolic)}</span> ${u('unit_mmhg')}` +
+      `<div class="hbp-hr text-xs font-normal mt-1">` +
+      `${t('hr_prefix')} ${r(o.heart_rate)} ${t('unit_bpm')}</div>`
     );
   }
 
