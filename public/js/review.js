@@ -8,13 +8,16 @@ const HomeBPReview = (() => {
   // Graph pulls ~6 months of history so weekly/monthly have enough data.
   const GRAPH_DAYS = 183;
 
+  // Localised AM/PM label (Thai: เช้า/เย็น). Data value stays 'AM'/'PM'.
+  const ampmLabel = (v) => (v === 'AM' ? t('ampm_am') : v === 'PM' ? t('ampm_pm') : v);
+
   // Segmented All / AM / PM filter. `cur` is the active value ('all'|'AM'|'PM').
   function ampmControl(cur) {
     const b = (val, label) => {
       const on = cur === val;
       return `<button class="js-ampm px-3 py-1 text-sm ${on ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}" data-ampm="${val}">${label}</button>`;
     };
-    return `<span class="inline-flex rounded-lg border overflow-hidden">${b('all', t('ampm_all'))}${b('AM', 'AM')}${b('PM', 'PM')}</span>`;
+    return `<span class="inline-flex rounded-lg border overflow-hidden">${b('all', t('ampm_all'))}${b('AM', ampmLabel('AM'))}${b('PM', ampmLabel('PM'))}</span>`;
   }
 
   // Inline plugin: dashed reference lines at clinical thresholds (systolic 130, diastolic 80).
@@ -162,7 +165,7 @@ const HomeBPReview = (() => {
       .map((row) => {
         const c = bpColorClass(r(row.systolic), r(row.diastolic));
         return `<tr class="border-t">
-          <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)} <span class="text-slate-400 text-xs">${row.ampm}</span></td>
+          <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)} <span class="text-slate-400 text-xs">${ampmLabel(row.ampm)}</span></td>
           <td class="px-3 py-2 font-bold ${c}">${r(row.systolic)}</td>
           <td class="px-3 py-2 font-bold ${c}">${r(row.diastolic)}</td>
           <td class="px-3 py-2 hbp-hr">${r(row.heart_rate)}</td>
@@ -187,7 +190,7 @@ const HomeBPReview = (() => {
   function aggregate(rows, tf) {
     if (tf === 'ampm') {
       return rows.map((row) => ({
-        label: `${fmtDate(row.date)} ${row.ampm}`,
+        label: `${fmtDate(row.date)} ${ampmLabel(row.ampm)}`,
         systolic: Number(row.systolic), diastolic: Number(row.diastolic), heart_rate: Number(row.heart_rate),
       }));
     }
@@ -506,5 +509,5 @@ const HomeBPReview = (() => {
     return { reload: load };
   }
 
-  return { init };
+  return { init, bpColorClass };
 })();
