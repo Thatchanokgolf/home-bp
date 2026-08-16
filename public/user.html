@@ -3,6 +3,7 @@
 <title>Home BP — My readings</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 <div class="min-h-screen bg-slate-100 flex flex-col">
   <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
     <div>
@@ -55,6 +56,9 @@
 
     <!-- Review pane -->
     <section id="paneReview" class="hidden">
+      <div class="mb-4">
+        <button id="shareDocBtn" class="bg-emerald-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50" data-i18n="share_doctor_btn"></button>
+      </div>
       <div id="reviewContainer"></div>
     </section>
   </main>
@@ -74,6 +78,21 @@
       <button id="cConfirm" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="confirm"></button>
       <button id="cCancel" class="flex-1 border rounded-lg py-2 hover:bg-slate-50" data-i18n="cancel"></button>
     </div>
+  </div>
+</div>
+
+<!-- Share to doctor modal -->
+<div id="shareModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+    <h3 class="text-lg font-semibold mb-2 text-slate-800" data-i18n="share_doctor_title"></h3>
+    <p class="text-sm text-slate-500 mb-4" data-i18n="share_doctor_desc"></p>
+    <div id="shareQr" class="flex justify-center mb-3"></div>
+    <p class="text-xs text-amber-600 mb-4" data-i18n="share_expiry_note"></p>
+    <div class="flex gap-2">
+      <button id="shareCopy" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700" data-i18n="share_copy_link"></button>
+      <button id="shareClose" class="flex-1 border rounded-lg py-2 hover:bg-slate-50" data-i18n="close"></button>
+    </div>
+    <p id="shareCopied" class="hidden text-xs text-green-600 mt-2" data-i18n="share_copied"></p>
   </div>
 </div>
 
@@ -145,6 +164,31 @@
     document.getElementById('tabReview').addEventListener('click', () => show('review'));
     show('submit');
     loadLast5();
+
+    // ---- share to doctor (temporary read-only QR link, 30 min) ----
+    let shareUrl = '';
+    const shareModal = document.getElementById('shareModal');
+    document.getElementById('shareDocBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const { token } = await api('share-token', {});
+        shareUrl = location.origin + '/shared.html?token=' + encodeURIComponent(token);
+        const box = document.getElementById('shareQr');
+        box.innerHTML = '';
+        new QRCode(box, { text: shareUrl, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        document.getElementById('shareCopied').classList.add('hidden');
+        shareModal.classList.remove('hidden');
+      } catch (err) { alert(err.message); }
+      finally { btn.disabled = false; }
+    });
+    document.getElementById('shareClose').addEventListener('click', () => shareModal.classList.add('hidden'));
+    document.getElementById('shareCopy').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(shareUrl); } catch {}
+      const c = document.getElementById('shareCopied');
+      c.classList.remove('hidden');
+      setTimeout(() => c.classList.add('hidden'), 2500);
+    });
 
     // ---- submit + confirmation ----
     const modal = document.getElementById('confirmModal');

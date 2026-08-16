@@ -1,0 +1,76 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home BP — Shared records</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<div class="min-h-screen bg-slate-100 flex flex-col">
+  <header class="flex items-center justify-between px-5 py-3 bg-white shadow-sm">
+    <div>
+      <h1 class="font-semibold text-indigo-700" data-i18n="shared_view_title"></h1>
+      <p class="text-xs text-slate-500" data-i18n="shared_readonly_note"></p>
+    </div>
+    <button id="langToggle" onclick="toggleLang()" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50"></button>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6 max-w-4xl w-full mx-auto pb-10">
+    <div id="patient" class="hidden mb-4 bg-white rounded-2xl shadow p-4">
+      <span class="text-sm text-slate-500" data-i18n="shared_for"></span>
+      <span id="patientName" class="text-base font-semibold text-slate-800 ml-1"></span>
+      <span id="patientHosp" class="text-sm text-slate-500 ml-2"></span>
+    </div>
+
+    <div id="expired" class="hidden bg-white rounded-2xl shadow p-8 text-center">
+      <p class="text-4xl mb-3">⏱️</p>
+      <p class="text-slate-600" data-i18n="shared_expired"></p>
+    </div>
+
+    <div id="reviewContainer"></div>
+  </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/review.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', renderFooter);
+  window.onLangChange = () => { const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright'); };
+
+  const TOKEN = new URLSearchParams(location.search).get('token') || '';
+
+  // All data requests carry the share token instead of a Bearer session.
+  function shareFetch(path, body) {
+    return api(path, { ...(body || {}), share_token: TOKEN });
+  }
+
+  function showExpired() {
+    document.getElementById('reviewContainer').classList.add('hidden');
+    document.getElementById('patient').classList.add('hidden');
+    document.getElementById('expired').classList.remove('hidden');
+    applyI18n();
+  }
+
+  (async () => {
+    if (!TOKEN) { showExpired(); return; }
+    try {
+      const { user } = await api('shared-user', { share_token: TOKEN });
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || '-';
+      document.getElementById('patientName').textContent = name;
+      document.getElementById('patientHosp').textContent =
+        [user.hospital, user.hospital_id].filter(Boolean).join(' · ');
+      document.getElementById('patient').classList.remove('hidden');
+      applyI18n();
+
+      // Read-only review, authorised by the share token (no user id needed).
+      const reviewApi = HomeBPReview.init(
+        document.getElementById('reviewContainer'), null,
+        { readOnly: true, fetch: shareFetch }
+      );
+      window.onLangChange = () => {
+        const f = document.getElementById('hbpFooter'); if (f) f.textContent = t('copyright');
+        reviewApi.reload();
+      };
+    } catch (e) {
+      showExpired();
+    }
+  })();
+</script>

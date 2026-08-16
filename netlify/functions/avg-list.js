@@ -1,17 +1,26 @@
 const { sql, ok, bad, parse } = require('./_db');
-const { verify, canViewUser } = require('./_auth');
+const { verify, canViewUser, verifyShareToken } = require('./_auth');
 
-// POST /api/avg-list  body: { user_id, from, to }
+// POST /api/avg-list  body: { user_id, from, to } OR { share_token, from, to }
 // Returns the averaged rows plus a summary block.
-// Allowed for the owner, or an admin viewing a shared user.
+// Allowed for the owner, an admin viewing a shared user, or a read-only
+// "share to doctor" token (which fixes the user_id to the token's owner).
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return bad('Method not allowed', 405);
-  const auth = verify(event);
-  if (!auth) return bad('Unauthorized', 401);
+  const body = parse(event);
+  const { from, to } = body;
 
-  const { user_id, from, to } = parse(event);
-  if (!user_id) return bad('Missing user');
-  if (!(await canViewUser(auth, user_id, sql))) return bad('Forbidden', 403);
+  let user_id;
+  const share = verifyShareToken(body.share_token);
+  if (share) {
+    user_id = share.uid; // read-only; ignore any client-supplied user_id
+  } else {
+    const auth = verify(event);
+    if (!auth) return bad('Unauthorized', 401);
+    user_id = body.user_id;
+    if (!user_id) return bad('Missing user');
+    if (!(await canViewUser(auth, user_id, sql))) return bad('Forbidden', 403);
+  }
 
   const rows = await sql`
     SELECT id, to_char(date, 'YYYY-MM-DD') AS date, ampm, systolic, diastolic, heart_rate

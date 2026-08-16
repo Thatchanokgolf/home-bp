@@ -97,7 +97,8 @@ const HomeBPReview = (() => {
     );
   }
 
-  // All BP readings: Date (d/m/y only, no time/AM-PM), Sys, Dia, HR, delete
+  // All BP readings: Date (d/m/y only, no time/AM-PM), Sys, Dia, HR, delete.
+  // The delete column is omitted in read-only mode (e.g. the doctor's view).
   function tableAll(rows, canDelete) {
     if (!rows.length) return `<p class="text-slate-400 py-6 text-center">${t('no_data')}</p>`;
     const head =
@@ -106,7 +107,7 @@ const HomeBPReview = (() => {
       `<th class="px-3 py-2 text-left font-medium">${t('col_sys')} ${t('unit_mmhg')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_dia')} ${t('unit_mmhg')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_hr')} ${t('unit_bpm')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_action')}</th>`;
+      (canDelete ? `<th class="px-3 py-2 text-left font-medium">${t('col_action')}</th>` : '');
     const body = rows
       .map(
         (row) => `<tr class="border-t">
@@ -115,7 +116,7 @@ const HomeBPReview = (() => {
           <td class="px-3 py-2">${row.systolic}</td>
           <td class="px-3 py-2">${row.diastolic}</td>
           <td class="px-3 py-2">${row.heart_rate}</td>
-          <td class="px-3 py-2"><button class="js-del text-red-600 hover:underline" data-id="${row.id}">${t('delete')}</button></td>
+          ${canDelete ? `<td class="px-3 py-2"><button class="js-del text-red-600 hover:underline" data-id="${row.id}">${t('delete')}</button></td>` : ''}
         </tr>`
       )
       .join('');
@@ -258,7 +259,12 @@ const HomeBPReview = (() => {
     return m;
   }
 
-  function init(container, userId) {
+  // opts: { readOnly?: boolean, fetch?: (path, body) => Promise }
+  //  - readOnly hides the delete column / disables deletion (doctor view)
+  //  - fetch overrides how bp-list/avg-list are requested (share-token auth)
+  function init(container, userId, opts = {}) {
+    const readOnly = !!opts.readOnly;
+    const fetchApi = opts.fetch || api;
     container.innerHTML = template();
     const $ = (sel) => container.querySelector(sel);
     const from = $('.js-from');
@@ -276,7 +282,7 @@ const HomeBPReview = (() => {
 
     // Renders the "All BP Reading" tab with sorting + 50-per-page pagination.
     function renderAllPane() {
-      if (!allRows.length) { $('.js-pane-all').innerHTML = tableAll([]); return; }
+      if (!allRows.length) { $('.js-pane-all').innerHTML = tableAll([], !readOnly); return; }
       const sorted = [...allRows].sort((a, b) => {
         const ka = `${a.date}T${a.time}`, kb = `${b.date}T${b.time}`;
         if (ka === kb) return 0;
@@ -299,7 +305,7 @@ const HomeBPReview = (() => {
           <button class="js-all-next border rounded-lg px-3 py-1 hover:bg-slate-50 disabled:opacity-40" ${allPage >= totalPages - 1 ? 'disabled' : ''}>${t('next')}</button>
         </div>` : '';
 
-      $('.js-pane-all').innerHTML = controls + tableAll(pageRows) + pager;
+      $('.js-pane-all').innerHTML = controls + tableAll(pageRows, !readOnly) + pager;
 
       const sortBtn = $('.js-sort');
       if (sortBtn) sortBtn.addEventListener('click', () => { allSortDesc = !allSortDesc; allPage = 0; renderAllPane(); });
@@ -307,7 +313,7 @@ const HomeBPReview = (() => {
       if (prevBtn) prevBtn.addEventListener('click', () => { allPage = Math.max(0, allPage - 1); renderAllPane(); });
       const nextBtn = $('.js-all-next');
       if (nextBtn) nextBtn.addEventListener('click', () => { allPage += 1; renderAllPane(); });
-      wireDelete();
+      if (!readOnly) wireDelete();
     }
 
     function drawGraph() {
@@ -371,8 +377,8 @@ const HomeBPReview = (() => {
       $('.js-summary').innerHTML = '';
       try {
         const [all, avg] = await Promise.all([
-          api('bp-list', { user_id: userId, from: from.value, to: to.value }),
-          api('avg-list', { user_id: userId, from: from.value, to: to.value }),
+          fetchApi('bp-list', { user_id: userId, from: from.value, to: to.value }),
+          fetchApi('avg-list', { user_id: userId, from: from.value, to: to.value }),
         ]);
         avgRows = avg.rows;
         allRows = all.rows;
