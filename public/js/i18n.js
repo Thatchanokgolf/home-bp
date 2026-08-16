@@ -162,7 +162,7 @@ const STRINGS = {
     times: 'ครั้ง',
     unit_mmhg: 'mmHg',
     unit_bpm: 'bpm',
-    hr_prefix: 'หัวใจ',
+    hr_prefix: 'อัตราการเต้นของหัวใจ',
     graph_sys_full: 'ความดันโลหิตตัวบน',
     graph_dia_full: 'ความดันโลหิตตัวล่าง',
     graph_hr_full: 'อัตราการเต้นของหัวใจ',
