@@ -11,6 +11,9 @@ const HomeBPReview = (() => {
   // Localised AM/PM label (Thai: เช้า/เย็น). Data value stays 'AM'/'PM'.
   const ampmLabel = (v) => (v === 'AM' ? t('ampm_am') : v === 'PM' ? t('ampm_pm') : v);
 
+  // Unit suffix for table headers — English only (the Thai labels are descriptive).
+  const headUnit = (key) => (getLang() === 'en' ? ` ${t(key)}` : '');
+
   // Segmented All / AM / PM filter. `cur` is the active value ('all'|'AM'|'PM').
   function ampmControl(cur) {
     const b = (val, label) => {
@@ -67,7 +70,7 @@ const HomeBPReview = (() => {
     const c = bpColorClass(o.systolic, o.diastolic);
     return (
       `<span class="${c}">${r(o.systolic)}/${r(o.diastolic)}</span> ${u('unit_mmhg')}` +
-      `<div class="hbp-hr text-xs font-normal mt-1">` +
+      `<div class="hbp-hr text-xs font-bold mt-1">` +
       `${t('hr_prefix')} ${r(o.heart_rate)} ${t('unit_bpm')}</div>`
     );
   }
@@ -89,8 +92,8 @@ const HomeBPReview = (() => {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 js-summary"></div>
 
       <div class="flex gap-2 mb-4 border-b">
-        <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="all" data-i18n="tab_all"></button>
         <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="avg" data-i18n="tab_avg"></button>
+        <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="all" data-i18n="tab_all"></button>
         <button class="js-t -mb-px border-b-2 rounded-t-lg px-4 py-2 text-sm font-medium" data-tab="graph" data-i18n="tab_graph"></button>
       </div>
 
@@ -113,7 +116,7 @@ const HomeBPReview = (() => {
   function summaryCards(s) {
     const card = (labelKey, value, sub) => `
       <div class="hbp-sumcard rounded-xl border p-3 shadow-sm">
-        <div class="text-xs text-slate-500" data-i18n="${labelKey}"></div>
+        <div class="text-sm font-bold text-slate-500" data-i18n="${labelKey}"></div>
         <div class="text-base font-semibold text-slate-800">${value}</div>
         ${sub ? `<div class="text-xs text-slate-400 mt-0.5">${sub}</div>` : ''}
       </div>`;
@@ -132,9 +135,9 @@ const HomeBPReview = (() => {
     const head =
       `<th class="px-3 py-2 text-left font-medium">${t('col_date')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_time')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_sys')} ${t('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_dia')} ${t('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_hr')} ${t('unit_bpm')}</th>` +
+      `<th class="px-3 py-2 text-left font-medium">${t('col_sys')}${headUnit('unit_mmhg')}</th>` +
+      `<th class="px-3 py-2 text-left font-medium">${t('col_dia')}${headUnit('unit_mmhg')}</th>` +
+      `<th class="px-3 py-2 text-left font-medium">${t('col_hr')}${headUnit('unit_bpm')}</th>` +
       (canDelete ? `<th class="px-3 py-2 text-left font-medium">${t('col_action')}</th>` : '');
     const body = rows
       .map((row) => {
@@ -158,9 +161,9 @@ const HomeBPReview = (() => {
     if (!rows.length) return `<p class="text-slate-400 py-6 text-center">${t('no_data')}</p>`;
     const head =
       `<th class="px-3 py-2 text-left font-medium">${t('col_date')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_sys')} ${t('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_dia')} ${t('unit_mmhg')}</th>` +
-      `<th class="px-3 py-2 text-left font-medium">${t('col_hr')} ${t('unit_bpm')}</th>`;
+      `<th class="px-3 py-2 text-left font-medium">${t('col_sys')}${headUnit('unit_mmhg')}</th>` +
+      `<th class="px-3 py-2 text-left font-medium">${t('col_dia')}${headUnit('unit_mmhg')}</th>` +
+      `<th class="px-3 py-2 text-left font-medium">${t('col_hr')}${headUnit('unit_bpm')}</th>`;
     const body = rows
       .map((row) => {
         const c = bpColorClass(r(row.systolic), r(row.diastolic));
@@ -302,7 +305,7 @@ const HomeBPReview = (() => {
     to.value = ymd(new Date());
 
     let avgRows = [];
-    let currentTab = 'all';
+    let currentTab = 'avg'; // Average BP is the first/default tab
     let timeframe = 'ampm';
     let allRows = [];
     let allSortDesc = true; // newest first by default

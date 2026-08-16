@@ -196,7 +196,7 @@ function injectFontCss() {
     .hbp-bp-orange { color: #ea580c; }
     .hbp-bp-yellow { color: #ca8a04; }
     .hbp-bp-green  { color: #16a34a; }
-    .hbp-hr        { color: #6b7280; }
+    .hbp-hr        { color: #ef9a8a; }
     /* Summary BP cards: light grey in light mode, dark surface in dark mode. */
     .hbp-sumcard { background: #e2e8f0; }
     .hbp-dark .hbp-sumcard { background: #20263a !important; }
@@ -205,7 +205,7 @@ function injectFontCss() {
     .hbp-dark .hbp-bp-orange { color: #fb923c !important; }
     .hbp-dark .hbp-bp-yellow { color: #facc15 !important; }
     .hbp-dark .hbp-bp-green  { color: #4ade80 !important; }
-    .hbp-dark .hbp-hr        { color: #9ca3af !important; }
+    .hbp-dark .hbp-hr        { color: #f7b4a3 !important; }
   `;
   document.head.appendChild(s);
 }
