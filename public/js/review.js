@@ -228,6 +228,11 @@ const HomeBPReview = (() => {
     const data = items; // already limited per timeframe by the caller
     const labels = data.map((row) => row.label);
 
+    // Start the BP axis below the lowest diastolic (not at 0) so the bars fill
+    // the chart. Rounded down to a tens boundary with a little headroom.
+    const dias = data.map((row) => r(row.diastolic)).filter((v) => v != null);
+    const yMinBp = dias.length ? Math.max(0, Math.floor((Math.min(...dias) - 15) / 10) * 10) : 0;
+
     // Theme-aware axis / legend colors.
     const dark = document.documentElement.classList.contains('hbp-dark');
     const tickColor = dark ? '#cbd5e1' : '#475569';
@@ -265,7 +270,7 @@ const HomeBPReview = (() => {
         },
         scales: {
           x: { stacked: true, ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { stacked: true, beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } },
+          y: { stacked: true, min: yMinBp, ticks: { color: tickColor }, grid: { color: gridColor } },
         },
       },
     });
