@@ -66,8 +66,28 @@
       <td class="px-2 py-2"><input class="${inp} f-hn" value="${u.hospital_id || ''}" /></td>
       <td class="px-2 py-2"><select class="${inp} f-role">${roleOpt}</select></td>
       <td class="px-2 py-2 text-center"><input type="checkbox" class="f-shared" ${u.shared ? 'checked' : ''} /></td>
-      <td class="px-2 py-2"><button class="f-save bg-indigo-600 text-white rounded px-3 py-1 hover:bg-indigo-700" data-i18n="save"></button></td>
+      <td class="px-2 py-2 whitespace-nowrap">
+        <button class="f-save bg-indigo-600 text-white rounded px-3 py-1 hover:bg-indigo-700" data-i18n="save"></button>
+        ${u.id === master.id ? '' : '<button class="f-delete bg-red-600 text-white rounded px-3 py-1 hover:bg-red-700 ml-1" data-i18n="delete"></button>'}
+      </td>
     </tr>`;
+  }
+
+  async function deleteRow(tr) {
+    const id = Number(tr.dataset.id);
+    const g = (c) => tr.querySelector(c);
+    const name = [g('.f-fn').value.trim(), g('.f-ln').value.trim()].filter(Boolean).join(' ')
+      || g('.f-username').value.trim() || '-';
+    if (!confirm(t('master_delete_confirm').replace('{id}', id).replace('{name}', name))) return;
+    const btn = g('.f-delete');
+    btn.disabled = true;
+    try {
+      await api('master-delete', { id });
+      tr.remove();
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+    }
   }
 
   async function saveRow(tr) {
@@ -101,6 +121,8 @@
       applyI18n();
       document.querySelectorAll('.f-save').forEach((b) =>
         b.addEventListener('click', () => saveRow(b.closest('tr'))));
+      document.querySelectorAll('.f-delete').forEach((b) =>
+        b.addEventListener('click', () => deleteRow(b.closest('tr'))));
     } catch (err) { alert(err.message); }
   })();
 </script>
