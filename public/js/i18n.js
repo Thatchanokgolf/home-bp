@@ -19,7 +19,7 @@ const STRINGS = {
 
     // login
     login_title: 'เข้าสู่ระบบ',
-    id_email_username: 'ไอดี / อีเมล / ชื่อผู้ใช้',
+    id_email_username: 'ชื่อผู้ใช้',
     password: 'รหัสผ่าน',
     login_btn: 'เข้าสู่ระบบ',
     qr_login_link: 'เข้าสู่ระบบด้วย QR code',
@@ -214,7 +214,7 @@ const STRINGS = {
     loading: 'Loading...',
 
     login_title: 'Log in',
-    id_email_username: 'ID / E-mail / Username',
+    id_email_username: 'Username',
     password: 'Password',
     login_btn: 'Log in',
     qr_login_link: 'Log in with QR code',
