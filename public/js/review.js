@@ -146,14 +146,15 @@ const HomeBPReview = (() => {
       `<th class="px-3 py-2 text-left font-medium">${t('col_dia')} ${t('unit_mmhg')}</th>` +
       `<th class="px-3 py-2 text-left font-medium">${t('col_hr')} ${t('unit_bpm')}</th>`;
     const body = rows
-      .map(
-        (row) => `<tr class="border-t">
+      .map((row) => {
+        const c = bpColorClass(r(row.systolic), r(row.diastolic));
+        return `<tr class="border-t">
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)} <span class="text-slate-400 text-xs">${row.ampm}</span></td>
-          <td class="px-3 py-2">${r(row.systolic)}</td>
-          <td class="px-3 py-2">${r(row.diastolic)}</td>
-          <td class="px-3 py-2">${r(row.heart_rate)}</td>
-        </tr>`
-      )
+          <td class="px-3 py-2 font-bold ${c}">${r(row.systolic)}</td>
+          <td class="px-3 py-2 font-bold ${c}">${r(row.diastolic)}</td>
+          <td class="px-3 py-2 hbp-hr">${r(row.heart_rate)}</td>
+        </tr>`;
+      })
       .join('');
     return `<div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl border">
       <thead class="bg-slate-50 text-slate-600">${head}</thead><tbody>${body}</tbody></table></div>`;

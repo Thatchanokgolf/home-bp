@@ -145,7 +145,7 @@ function injectDarkCss() {
       background-attachment: fixed !important;
     }
     .hbp-dark body { background: #05060a; color: #e5e7eb; }
-    .hbp-dark .bg-white { background: rgba(17,20,32,0.82) !important; }
+    .hbp-dark .bg-white { background: #161a2b !important; }
     /* Bordered buttons/links (header, modal Cancel) need a visible surface. */
     .hbp-dark button.border, .hbp-dark a.border { background: rgba(255,255,255,0.06) !important; }
     .hbp-dark .bg-slate-50 { background: rgba(255,255,255,0.05) !important; }
