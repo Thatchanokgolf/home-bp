@@ -133,17 +133,22 @@
         const box = document.getElementById('last5');
         if (!rows.length) { box.innerHTML = `<p class="text-slate-400 text-sm">${t('no_data')}</p>`; return; }
         const head = ['col_date', 'col_sys', 'col_dia', 'col_hr']
-          .map((k) => `<th class="px-2 py-1 text-left font-medium ${k === 'col_hr' ? 'hbp-hr' : ''}">${t(k)}</th>`).join('');
+          .map((k) => `<th class="px-2 py-1 text-left font-medium">${t(k)}</th>`).join('')
+          + `<th class="px-2 py-1 text-left font-medium">${t('col_action')}</th>`;
         const body = rows.map((r) => {
           const c = HomeBPReview.bpColorClass(r.systolic, r.diastolic);
           return `<tr class="border-t">
           <td class="px-2 py-1 whitespace-nowrap">${fmtDateHM(r.date, r.time)}</td>
           <td class="px-2 py-1 font-bold ${c}">${r.systolic}</td>
           <td class="px-2 py-1 font-bold ${c}">${r.diastolic}</td>
-          <td class="px-2 py-1 hbp-hr font-medium">${r.heart_rate}</td></tr>`;
+          <td class="px-2 py-1 hbp-hr font-medium">${r.heart_rate}</td>
+          <td class="px-2 py-1"><button class="js-del text-red-600 hover:underline" data-id="${r.id}">${t('delete')}</button></td></tr>`;
         }).join('');
         box.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">
           <thead class="text-slate-500">${head}</thead><tbody>${body}</tbody></table></div>`;
+        box.querySelectorAll('.js-del').forEach((btn) => {
+          btn.addEventListener('click', () => HomeBPReview.confirmDelete(btn.dataset.id, loadLast5));
+        });
       } catch (e) { /* ignore */ }
     }
 

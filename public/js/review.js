@@ -99,6 +99,9 @@ const HomeBPReview = (() => {
           <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ea580c"></span><span data-i18n="legend_orange_r"></span></div>
           <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#dc2626"></span><span data-i18n="legend_red_r"></span></div>
         </div>
+        <div class="mt-2 pt-2 border-t">
+          <span data-i18n="legend_hr_r"></span>
+        </div>
       </div>
 
       <div class="flex gap-2 mb-4 border-b">
@@ -123,18 +126,54 @@ const HomeBPReview = (() => {
     `;
   }
 
+  // Size the BP numbers to ~50% of card width, then apply one common (min)
+  // size to every number — including the frequency card — so they all match.
+  function fitSummaryNumbers(box) {
+    if (!box) return;
+    const bpNums = [...box.querySelectorAll('.js-bp-num')];
+    if (!bpNums.length) return;
+    let common = 72;
+    bpNums.forEach((el) => {
+      const card = el.closest('.hbp-sumcard');
+      if (!card) return;
+      const target = card.clientWidth * 0.5;
+      if (!target) return;
+      // Always measure the BP string (longest form), so the HR toggle can't
+      // change the fitted size. The caller re-applies the current view after.
+      if (card.dataset.bp) el.textContent = card.dataset.bp;
+      el.style.fontSize = '16px';
+      const w = el.getBoundingClientRect().width; // inline-block -> actual text width
+      if (w > 0) common = Math.min(common, Math.max(18, Math.min(16 * (target / w), 72)));
+    });
+    box.querySelectorAll('.js-bp-num, .js-freq-num').forEach((el) => { el.style.fontSize = common + 'px'; });
+  }
+
+  // Summary cards: a big value with a unit line below. Clicking any card flips
+  // all BP cards between the BP reading (mmHg) and the heart rate (bpm). The
+  // BP/HR values are stashed in data-* attributes; applyHrView swaps them in.
   function summaryCards(s) {
-    const card = (labelKey, value, sub) => `
-      <div class="hbp-sumcard rounded-xl border p-3 shadow-sm">
-        <div class="text-sm font-bold text-slate-500" data-i18n="${labelKey}"></div>
-        <div class="text-base font-semibold text-slate-800">${value}</div>
-        ${sub ? `<div class="text-xs text-slate-400 mt-0.5">${sub}</div>` : ''}
-      </div>`;
+    const bpCard = (labelKey, o) => {
+      const has = o && o.systolic != null;
+      const val = has ? `${r(o.systolic)}/${r(o.diastolic)}` : '-';
+      const c = has ? bpColorClass(o.systolic, o.diastolic) : '';
+      const hr = has ? r(o.heart_rate) : '';
+      return `
+        <div class="hbp-sumcard rounded-xl border p-3 shadow-sm cursor-pointer select-none js-sumcard"
+             data-bp="${val}" data-bpclass="${c}" data-hr="${hr}">
+          <div class="text-sm font-bold text-slate-500" data-i18n="${labelKey}"></div>
+          <div class="text-center"><span class="js-bp-num inline-block font-bold leading-tight ${c}">${val}</span></div>
+          <div class="js-unit text-xs text-slate-400 text-center">${t('unit_mmhg')}</div>
+        </div>`;
+    };
     return (
-      card('sum_am', bpLine(s.am)) +
-      card('sum_pm', bpLine(s.pm)) +
-      card('sum_24', bpLine(s.all)) +
-      card('sum_freq', `${s.count} / ${s.max_expected}`, t('days_unit'))
+      bpCard('sum_am', s.am) +
+      bpCard('sum_pm', s.pm) +
+      bpCard('sum_24', s.all) +
+      `<div class="hbp-sumcard rounded-xl border p-3 shadow-sm cursor-pointer select-none js-sumcard">
+        <div class="text-sm font-bold text-slate-500" data-i18n="sum_freq"></div>
+        <div class="text-center"><span class="js-freq-num inline-block font-bold leading-tight text-slate-800">${s.count} / ${s.max_expected}</span></div>
+        <div class="text-xs text-slate-400 text-center">${t('days_unit')}</div>
+      </div>`
     );
   }
 
@@ -316,6 +355,32 @@ const HomeBPReview = (() => {
     return m;
   }
 
+  // Confirm-then-delete a reading using the shared modal (Yes/No, no password).
+  // onDone runs after a successful delete. Reused by the review table and the
+  // "last 5" list on the submit tab.
+  function confirmDelete(readingId, onDone) {
+    const modal = ensureDeleteModal();
+    modal.querySelector('.js-dtitle').textContent = t('delete_title');
+    modal.querySelector('.js-dprompt').textContent = t('delete_confirm');
+    modal.querySelector('.js-dok').textContent = t('yes');
+    modal.querySelector('.js-dcancel').textContent = t('no');
+    modal.classList.remove('hidden');
+    modal.querySelector('.js-dcancel').onclick = () => modal.classList.add('hidden');
+    modal.querySelector('.js-dok').onclick = async () => {
+      const ok = modal.querySelector('.js-dok');
+      ok.disabled = true;
+      try {
+        await api('delete-bp', { reading_id: Number(readingId) });
+        modal.classList.add('hidden');
+        if (onDone) onDone();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        ok.disabled = false;
+      }
+    };
+  }
+
   // opts: { readOnly?: boolean, fetch?: (path, body) => Promise }
   //  - readOnly hides the delete column / disables deletion (doctor view)
   //  - fetch overrides how bp-list/avg-list are requested (share-token auth)
@@ -340,7 +405,41 @@ const HomeBPReview = (() => {
     let avgAmpm = 'all';     // Average BP: AM/PM filter
     let graphRows = null;    // ~6 months of avg data for the graph (lazy)
     let graphAmpm = 'all';   // AM-PM graph: which half-day to show
+    let hrVisible = false;   // summary cards: heart rate hidden until a card is clicked
     const PAGE_SIZE = 50;
+
+    // Swaps every BP card between its BP reading (mmHg) and heart rate (bpm).
+    // HR value + a heart icon are shown in peach-pink; the unit keeps its grey.
+    function applyHrView(box) {
+      box.querySelectorAll('.js-sumcard[data-hr]').forEach((card) => {
+        const num = card.querySelector('.js-bp-num');
+        const unit = card.querySelector('.js-unit');
+        if (!num) return;
+        const hr = card.dataset.hr;
+        if (hrVisible && hr) {
+          num.className = 'js-bp-num inline-block font-bold leading-tight hbp-hr';
+          num.innerHTML = `<span aria-hidden="true">♥</span> ${hr}`;
+          if (unit) unit.textContent = t('unit_bpm');
+        } else {
+          num.className = 'js-bp-num inline-block font-bold leading-tight ' + (card.dataset.bpclass || '');
+          num.textContent = card.dataset.bp || '-';
+          if (unit) unit.textContent = t('unit_mmhg');
+        }
+      });
+    }
+
+    // Applies current BP/HR view + wires card clicks (toggle on all cards) + fits numbers.
+    function wireSummary() {
+      const box = $('.js-summary');
+      box.querySelectorAll('.js-sumcard').forEach((card) =>
+        card.addEventListener('click', () => {
+          hrVisible = !hrVisible;
+          applyHrView($('.js-summary'));
+        }));
+      requestAnimationFrame(() => { fitSummaryNumbers(box); applyHrView(box); });
+    }
+    // Re-fit the big numbers when the cards change width, then restore the view.
+    if (window.ResizeObserver) new ResizeObserver(() => { const b = $('.js-summary'); fitSummaryNumbers(b); applyHrView(b); }).observe($('.js-summary'));
 
     // Renders the "All BP Reading" tab: AM/PM filter + sort + 50-per-page pages.
     function renderAllPane() {
@@ -456,29 +555,8 @@ const HomeBPReview = (() => {
     }
 
     function wireDelete() {
-      const modal = ensureDeleteModal();
       container.querySelectorAll('.js-del').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          modal.querySelector('.js-dtitle').textContent = t('delete_title');
-          modal.querySelector('.js-dprompt').textContent = t('delete_confirm');
-          modal.querySelector('.js-dok').textContent = t('yes');
-          modal.querySelector('.js-dcancel').textContent = t('no');
-          modal.classList.remove('hidden');
-          modal.querySelector('.js-dcancel').onclick = () => modal.classList.add('hidden');
-          modal.querySelector('.js-dok').onclick = async () => {
-            const ok = modal.querySelector('.js-dok');
-            ok.disabled = true;
-            try {
-              await api('delete-bp', { reading_id: Number(btn.dataset.id) });
-              modal.classList.add('hidden');
-              load();
-            } catch (e) {
-              alert(e.message);
-            } finally {
-              ok.disabled = false;
-            }
-          };
-        });
+        btn.addEventListener('click', () => confirmDelete(btn.dataset.id, load));
       });
     }
 
@@ -504,6 +582,7 @@ const HomeBPReview = (() => {
         graphRows = null; // invalidate the graph's window so it refetches
         $('.js-summary').innerHTML = summaryCards(avg.summary);
         applyI18n();
+        wireSummary();
         renderAllPane();
         renderAvgPane();
         activate(currentTab);
@@ -537,5 +616,5 @@ const HomeBPReview = (() => {
     return { reload: load };
   }
 
-  return { init, bpColorClass };
+  return { init, bpColorClass, confirmDelete };
 })();
