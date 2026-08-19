@@ -218,7 +218,7 @@ const HomeBPReview = (() => {
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)}</td>
           <td class="px-3 py-2 whitespace-nowrap">${fmtHM(row.time)}</td>
           <td class="px-3 py-2 text-center font-bold text-lg ${c}">${row.systolic}/${row.diastolic}</td>
-          <td class="px-3 py-2 text-center hbp-hr font-bold">${row.heart_rate}</td>
+          <td class="px-3 py-2 text-center text-slate-800 font-bold">${row.heart_rate}</td>
           ${canDelete ? `<td class="px-3 py-2"><button class="js-del text-red-600 hover:underline" data-id="${row.id}">${t('delete')}</button></td>` : ''}
         </tr>`;
       })
@@ -240,7 +240,7 @@ const HomeBPReview = (() => {
         return `<tr class="border-t">
           <td class="px-3 py-2 whitespace-nowrap">${fmtDate(row.date)} <span class="text-slate-400 text-xs">${ampmLabel(row.ampm)}</span></td>
           <td class="px-3 py-2 text-center font-bold text-lg ${c}">${r(row.systolic)}/${r(row.diastolic)}</td>
-          <td class="px-3 py-2 text-center hbp-hr font-bold">${r(row.heart_rate)}</td>
+          <td class="px-3 py-2 text-center text-slate-800 font-bold">${r(row.heart_rate)}</td>
         </tr>`;
       })
       .join('');
