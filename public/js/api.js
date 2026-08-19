@@ -197,6 +197,12 @@ function injectFontCss() {
     .hbp-bp-yellow { color: #ca8a04; }
     .hbp-bp-green  { color: #16a34a; }
     .hbp-hr        { color: #ef9a8a; }
+    /* Grey heart-rate (summary card + submit BP); review tables stay peach. */
+    .hbp-hr-grey   { color: #64748b; }
+    /* Midnight blue for the summary-card range line (lighter in dark mode). */
+    .hbp-range     { color: #191970; }
+    /* Light red for the legend's always-on medication warning. */
+    .hbp-warn      { color: #f87171; }
     /* Summary BP cards: light grey in light mode, dark surface in dark mode. */
     .hbp-sumcard { background: #e2e8f0; }
     .hbp-dark .hbp-sumcard { background: #20263a !important; }
@@ -206,6 +212,8 @@ function injectFontCss() {
     .hbp-dark .hbp-bp-yellow { color: #facc15 !important; }
     .hbp-dark .hbp-bp-green  { color: #4ade80 !important; }
     .hbp-dark .hbp-hr        { color: #f7b4a3 !important; }
+    .hbp-dark .hbp-hr-grey   { color: #9aa6b6 !important; }
+    .hbp-dark .hbp-range     { color: #a5b4fc !important; }
   `;
   document.head.appendChild(s);
 }

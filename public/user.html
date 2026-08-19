@@ -88,7 +88,7 @@
       <li><span data-i18n="datetime"></span>: <b id="cDt"></b></li>
       <li><span data-i18n="systolic"></span>: <b id="cSys"></b> <span class="text-slate-400" data-i18n="unit_mmhg"></span></li>
       <li><span data-i18n="diastolic"></span>: <b id="cDia"></b> <span class="text-slate-400" data-i18n="unit_mmhg"></span></li>
-      <li class="hbp-hr"><span data-i18n="heart_rate"></span>: <b id="cHr"></b> <span data-i18n="unit_bpm"></span></li>
+      <li class="hbp-hr-grey"><span data-i18n="heart_rate"></span>: <b id="cHr"></b> <span data-i18n="unit_bpm"></span></li>
     </ul>
     <div class="flex gap-2">
       <button id="cConfirm" class="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:opacity-50" data-i18n="confirm"></button>
@@ -141,7 +141,7 @@
           <td class="px-2 py-1 whitespace-nowrap">${fmtDateHM(r.date, r.time)}</td>
           <td class="px-2 py-1 font-bold ${c}">${r.systolic}</td>
           <td class="px-2 py-1 font-bold ${c}">${r.diastolic}</td>
-          <td class="px-2 py-1 hbp-hr font-medium">${r.heart_rate}</td>
+          <td class="px-2 py-1 hbp-hr-grey font-medium">${r.heart_rate}</td>
           <td class="px-2 py-1"><button class="js-del text-red-600 hover:underline" data-id="${r.id}">${t('delete')}</button></td></tr>`;
         }).join('');
         box.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">

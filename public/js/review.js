@@ -91,17 +91,21 @@ const HomeBPReview = (() => {
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 js-summary"></div>
 
-      <div class="mb-5 rounded-xl border p-3 bg-white text-xs text-slate-500">
-        <div class="font-semibold mb-2" data-i18n="legend_title"></div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#16a34a"></span><span data-i18n="legend_green_r"></span></div>
-          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ca8a04"></span><span data-i18n="legend_yellow_r"></span></div>
-          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ea580c"></span><span data-i18n="legend_orange_r"></span></div>
-          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#dc2626"></span><span data-i18n="legend_red_r"></span></div>
+      <div class="mb-5 rounded-xl border p-3 bg-white text-sm text-slate-500">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-base font-semibold" data-i18n="legend_title"></span>
+          <button type="button" class="js-legend-toggle text-indigo-600 hover:underline" data-i18n="legend_show"></button>
         </div>
-        <div class="mt-2 pt-2 border-t">
-          <span data-i18n="legend_hr_r"></span>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#16a34a"></span><span><span data-i18n="legend_green"></span><span class="js-legend-d hidden">: <span data-i18n="legend_green_d"></span></span></span></div>
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ca8a04"></span><span><span data-i18n="legend_yellow"></span><span class="js-legend-d hidden">: <span data-i18n="legend_yellow_d"></span></span></span></div>
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#ea580c"></span><span><span data-i18n="legend_orange"></span><span class="js-legend-d hidden">: <span data-i18n="legend_orange_d"></span></span></span></div>
+          <div class="flex items-start gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full mt-0.5 shrink-0" style="background:#dc2626"></span><span><span data-i18n="legend_red"></span><span class="js-legend-d hidden">: <span data-i18n="legend_red_d"></span></span></span></div>
         </div>
+        <div class="js-legend-d hidden mt-2 pt-2 border-t">
+          <span data-i18n="legend_hr"></span> <span data-i18n="legend_hr_d"></span>
+        </div>
+        <div class="mt-2 hbp-warn" data-i18n="legend_disclaimer"></div>
       </div>
 
       <div class="flex gap-2 mb-4 border-b">
@@ -148,27 +152,47 @@ const HomeBPReview = (() => {
     box.querySelectorAll('.js-bp-num, .js-freq-num').forEach((el) => { el.style.fontSize = common + 'px'; });
   }
 
-  // Summary cards: a big value with a unit line below. Clicking any card flips
-  // all BP cards between the BP reading (mmHg) and the heart rate (bpm). The
-  // BP/HR values are stashed in data-* attributes; applyHrView swaps them in.
-  function summaryCards(s) {
-    const bpCard = (labelKey, o) => {
+  // Min–max ranges (SBP/DBP/HR) per group, computed from the raw readings.
+  function rangesFrom(rows) {
+    const g = { am: [], pm: [], all: [] };
+    (rows || []).forEach((row) => {
+      g.all.push(row);
+      if (row.ampm === 'AM') g.am.push(row);
+      else if (row.ampm === 'PM') g.pm.push(row);
+    });
+    const range = (arr) => {
+      if (!arr.length) return null;
+      const mm = (key) => { const v = arr.map((x) => Number(x[key])); return [Math.min(...v), Math.max(...v)]; };
+      return { s: mm('systolic'), d: mm('diastolic'), h: mm('heart_rate') };
+    };
+    return { am: range(g.am), pm: range(g.pm), all: range(g.all) };
+  }
+
+  // Summary cards: a big value with a unit line below, and a small min–max range
+  // line (SBP/DBP/HR) at the bottom. Clicking any card flips all BP cards between
+  // the BP reading (mmHg) and the heart rate (bpm); values live in data-* attrs.
+  function summaryCards(s, ranges = {}) {
+    const bpCard = (labelKey, o, rg) => {
       const has = o && o.systolic != null;
       const val = has ? `${r(o.systolic)}/${r(o.diastolic)}` : '-';
       const c = has ? bpColorClass(o.systolic, o.diastolic) : '';
       const hr = has ? r(o.heart_rate) : '';
+      // Range shown at the bottom: SBP/DBP range with BP, HR range with HR.
+      const rBp = rg ? `(${rg.s[0]}-${rg.s[1]} / ${rg.d[0]}-${rg.d[1]})` : '';
+      const rHr = rg ? `(${rg.h[0]}-${rg.h[1]})` : '';
       return `
         <div class="hbp-sumcard rounded-xl border p-3 shadow-sm cursor-pointer select-none js-sumcard"
-             data-bp="${val}" data-bpclass="${c}" data-hr="${hr}">
+             data-bp="${val}" data-bpclass="${c}" data-hr="${hr}" data-rbp="${rBp}" data-rhr="${rHr}">
           <div class="text-sm font-bold text-slate-500" data-i18n="${labelKey}"></div>
           <div class="text-center"><span class="js-bp-num inline-block font-bold leading-tight ${c}">${val}</span></div>
+          <div class="js-range hbp-range text-xs text-center mt-1 leading-snug">${rBp}</div>
           <div class="js-unit text-xs text-slate-400 text-center">${t('unit_mmhg')}</div>
         </div>`;
     };
     return (
-      bpCard('sum_am', s.am) +
-      bpCard('sum_pm', s.pm) +
-      bpCard('sum_24', s.all) +
+      bpCard('sum_am', s.am, ranges.am) +
+      bpCard('sum_pm', s.pm, ranges.pm) +
+      bpCard('sum_24', s.all, ranges.all) +
       `<div class="hbp-sumcard rounded-xl border p-3 shadow-sm cursor-pointer select-none js-sumcard">
         <div class="text-sm font-bold text-slate-500" data-i18n="sum_freq"></div>
         <div class="text-center"><span class="js-freq-num inline-block font-bold leading-tight text-slate-800">${s.count} / ${s.max_expected}</span></div>
@@ -414,10 +438,12 @@ const HomeBPReview = (() => {
       box.querySelectorAll('.js-sumcard[data-hr]').forEach((card) => {
         const num = card.querySelector('.js-bp-num');
         const unit = card.querySelector('.js-unit');
+        const range = card.querySelector('.js-range');
         if (!num) return;
         const hr = card.dataset.hr;
+        if (range) range.textContent = (hrVisible && hr) ? (card.dataset.rhr || '') : (card.dataset.rbp || '');
         if (hrVisible && hr) {
-          num.className = 'js-bp-num inline-block font-bold leading-tight hbp-hr';
+          num.className = 'js-bp-num inline-block font-bold leading-tight text-slate-800';
           num.innerHTML = `<span aria-hidden="true">♥</span> ${hr}`;
           if (unit) unit.textContent = t('unit_bpm');
         } else {
@@ -580,7 +606,7 @@ const HomeBPReview = (() => {
         allRows = all.rows;
         allPage = 0; // fresh data -> back to first page (sort order is preserved)
         graphRows = null; // invalidate the graph's window so it refetches
-        $('.js-summary').innerHTML = summaryCards(avg.summary);
+        $('.js-summary').innerHTML = summaryCards(avg.summary, rangesFrom(all.rows));
         applyI18n();
         wireSummary();
         renderAllPane();
@@ -596,6 +622,15 @@ const HomeBPReview = (() => {
     container.querySelectorAll('.js-t').forEach((b) =>
       b.addEventListener('click', () => activate(b.dataset.tab))
     );
+    // Legend: hide the numeric detail by default; button reveals/hides it.
+    let legendOpen = false;
+    const legendBtn = container.querySelector('.js-legend-toggle');
+    if (legendBtn) legendBtn.addEventListener('click', () => {
+      legendOpen = !legendOpen;
+      container.querySelectorAll('.js-legend-d').forEach((el) => el.classList.toggle('hidden', !legendOpen));
+      legendBtn.setAttribute('data-i18n', legendOpen ? 'legend_hide' : 'legend_show');
+      legendBtn.textContent = t(legendOpen ? 'legend_hide' : 'legend_show');
+    });
     // Timeframe selector for the graph (AM-PM / daily / weekly / monthly).
     container.querySelectorAll('.js-tf').forEach((b) =>
       b.addEventListener('click', () => {
